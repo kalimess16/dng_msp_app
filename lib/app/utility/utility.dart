@@ -1,11 +1,10 @@
-import 'package:connectivity/connectivity.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 
 class IotUtility {
   Future<bool> checkInternetConnection(BuildContext context) async {
     var connectivityResult = await (Connectivity().checkConnectivity());
-    if (connectivityResult == ConnectivityResult.mobile ||
-        connectivityResult == ConnectivityResult.wifi) {
+    if (!connectivityResult.contains(ConnectivityResult.none)) {
       return true;
     }
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(

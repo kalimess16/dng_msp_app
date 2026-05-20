@@ -1,18 +1,7 @@
-buildscript {
-    repositories {
-        google()
-        jcenter()
-    }
-
-    dependencies {
-        classpath 'com.android.tools.build:gradle:3.5.3'
-        classpath 'com.google.gms:google-services:4.3.3'
-    }
-}
-
 allprojects {
     repositories {
         google()
+        mavenCentral()
         jcenter()
     }
 }
@@ -21,6 +10,52 @@ rootProject.buildDir = '../build'
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
+
+subprojects { subproject ->
+    subproject.plugins.withId('com.android.library') {
+        def androidExtension = subproject.extensions.findByName('android')
+        if (androidExtension != null) {
+            def configureAndroidLibrary = { extension ->
+                extension.buildFeatures.buildConfig = true
+                extension.compileSdk = 36
+                extension.compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+
+                if (extension.namespace == null) {
+                    def manifestFile = subproject.file('src/main/AndroidManifest.xml')
+                    if (manifestFile.exists()) {
+                        def documentBuilder = javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder()
+                        def manifest = documentBuilder.parse(manifestFile)
+                        def packageName = manifest.documentElement.getAttribute('package')
+                        if (packageName != null && !packageName.isEmpty()) {
+                            extension.namespace = packageName
+                        }
+                    }
+                }
+            }
+
+            configureAndroidLibrary(androidExtension)
+
+            def androidComponentsExtension = subproject.extensions.findByName('androidComponents')
+            if (androidComponentsExtension != null) {
+                androidComponentsExtension.finalizeDsl { extension ->
+                    configureAndroidLibrary(extension)
+                }
+            }
+
+            subproject.plugins.withId('org.jetbrains.kotlin.android') {
+                subproject.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+                    kotlinOptions {
+                        jvmTarget = JavaVersion.VERSION_17.toString()
+                    }
+                }
+            }
+        }
+    }
+}
+
 subprojects {
     project.evaluationDependsOn(':app')
 }

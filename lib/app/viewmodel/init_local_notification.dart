@@ -9,7 +9,7 @@ final AndroidNotificationChannel notificationChannel =
     AndroidNotificationChannel(
   "msp_channel_id",
   "iot_notification",
-  "IOT Notifications",
+  description: "IOT Notifications",
   importance: Importance.max,
   enableVibration: true,
   playSound: true,
@@ -19,18 +19,19 @@ final AndroidNotificationChannel notificationChannel =
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
+@pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 
   var androidPlatformChannelSpecifics = AndroidNotificationDetails(
       notificationChannel.id,
       notificationChannel.name,
-      notificationChannel.description,
+      channelDescription: notificationChannel.description,
       color: Colors.green,
       importance: Importance.max,
       priority: Priority.high,
       ticker: 'IOT');
-  var iOSPlatformChannelSpecifics = IOSNotificationDetails();
+  var iOSPlatformChannelSpecifics = DarwinNotificationDetails();
   var platformChannelSpecifics = NotificationDetails(
       android: androidPlatformChannelSpecifics,
       iOS: iOSPlatformChannelSpecifics);
@@ -51,11 +52,14 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       String _groupName = message.data['groupName'];
       if (_notificationTitle != null)
         await flutterLocalNotificationsPlugin.show(
-            _notificationId, _notificationTitle, null, platformChannelSpecifics,
+            id: _notificationId,
+            title: _notificationTitle,
+            body: null,
+            notificationDetails: platformChannelSpecifics,
             payload:
                 '$_notificationType~$_notificationId~$_originalId~$_originalCreator~$_groupName');
       else
-        await flutterLocalNotificationsPlugin.cancel(_notificationId);
+        await flutterLocalNotificationsPlugin.cancel(id: _notificationId);
       break;
 
     case 'AR':
@@ -64,7 +68,10 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       String _date = message.data['reportDate'];
       String _title = message.data['title'] ?? '';
       await flutterLocalNotificationsPlugin.show(
-          _id, _notificationTitle, null, platformChannelSpecifics,
+          id: _id,
+          title: _notificationTitle,
+          body: null,
+          notificationDetails: platformChannelSpecifics,
           payload: '$_notificationType~$_id~$_type~$_date~$_title');
       break;
   }

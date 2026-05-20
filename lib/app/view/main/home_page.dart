@@ -225,15 +225,18 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('ic_stat_name_msp'); //ic_stat_name
     flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
-    const IOSInitializationSettings initializationSettingsIOS =
-        IOSInitializationSettings();
+    const DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings();
     final InitializationSettings initializationSettings =
         InitializationSettings(
             android: initializationSettingsAndroid,
             iOS: initializationSettingsIOS);
 
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings,
-        onSelectNotification: selectNotification);
+    await flutterLocalNotificationsPlugin.initialize(
+        settings: initializationSettings,
+        onDidReceiveNotificationResponse: (notificationResponse) async {
+          await selectNotification(notificationResponse.payload);
+        });
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
