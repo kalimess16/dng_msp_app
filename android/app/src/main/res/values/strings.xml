@@ -1,0 +1,5 @@
+<resources>
+
+    <string name="default_notification_channel_id" translatable="false">msp_channel_id</string>
+
+</resources>

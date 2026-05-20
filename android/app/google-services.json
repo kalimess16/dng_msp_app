@@ -1,0 +1,99 @@
+{
+  "project_info": {
+    "project_number": "22785475202",
+    "firebase_url": "https://vbspdng-82524-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "vbspdng-82524",
+    "storage_bucket": "vbspdng-82524.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:22785475202:android:ec36bb83d83aa0b57caa9b",
+        "android_client_info": {
+          "package_name": "org.vbspdng.msp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "22785475202-7hg0h5m69fhp3vgd6f1mttc23mstiib2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDtyI8JaFd4FyU5c8MD_DSvh1jWEpk7kBU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "22785475202-7hg0h5m69fhp3vgd6f1mttc23mstiib2.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "22785475202-4ribc9lekc9rlkd7aqq3r7n2t2nfcqio.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.fcm.dngmsp.fcmdngmsp"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:22785475202:android:0626f8d2a34667237caa9b",
+        "android_client_info": {
+          "package_name": "vbsp.dngmsp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "22785475202-i44b0jjlp78e5mnnj3ukhcnh5aku0cdh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "vbsp.dngmsp",
+            "certificate_hash": "0a787f0208751d75106fa37bf46a2cb5f11e64e8"
+          }
+        },
+        {
+          "client_id": "22785475202-skg8abo94td6ju3d41abj7bger9ul3op.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "vbsp.dngmsp",
+            "certificate_hash": "09f62361a89ea802930f834d0cf60247e5d4b850"
+          }
+        },
+        {
+          "client_id": "22785475202-7hg0h5m69fhp3vgd6f1mttc23mstiib2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDtyI8JaFd4FyU5c8MD_DSvh1jWEpk7kBU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "22785475202-7hg0h5m69fhp3vgd6f1mttc23mstiib2.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "22785475202-4ribc9lekc9rlkd7aqq3r7n2t2nfcqio.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.fcm.dngmsp.fcmdngmsp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
