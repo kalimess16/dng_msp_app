@@ -40,8 +40,9 @@ class IotAccountStream {
     try {
       final GoogleSignInAccount? googleSignInAccount =
           await _googleSignIn.signIn();
+      if (googleSignInAccount == null) return LOGIN_FAIL_KEY;
       final GoogleSignInAuthentication googleSignInAuthentication =
-          await googleSignInAccount!.authentication;
+          await googleSignInAccount.authentication;
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleSignInAuthentication.accessToken,
         idToken: googleSignInAuthentication.idToken,
@@ -50,6 +51,7 @@ class IotAccountStream {
       if (_user == null) return LOGIN_FAIL_KEY;
       return await _authenticationIot(_googleSignIn, _user.email!, _user.uid);
     } catch (ex, s) {
+      print(ex);
       print(s);
     }
     return LOGIN_FAIL_KEY;

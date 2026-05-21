@@ -15,6 +15,30 @@
       },
       "oauth_client": [
         {
+          "client_id": "22785475202-kqj3866b3hv1r1drlmfeldutuej9vts6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "org.vbspdng.msp",
+            "certificate_hash": "09f62361a89ea802930f834d0cf60247e5d4b850"
+          }
+        },
+        {
+          "client_id": "22785475202-ldrqcj6abqgdkp8u0ek4l0mq8m01r369.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "org.vbspdng.msp",
+            "certificate_hash": "ff51f33ba625905a4dc08772860f3b0cbad5de72"
+          }
+        },
+        {
+          "client_id": "22785475202-mkg1bmdlgvmtbi3oki72jq73d240jnc6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "org.vbspdng.msp",
+            "certificate_hash": "9640f232568d45d45618ad2236856e62e30b7379"
+          }
+        },
+        {
           "client_id": "22785475202-7hg0h5m69fhp3vgd6f1mttc23mstiib2.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -32,10 +56,10 @@
               "client_type": 3
             },
             {
-              "client_id": "22785475202-4ribc9lekc9rlkd7aqq3r7n2t2nfcqio.apps.googleusercontent.com",
+              "client_id": "22785475202-50kgdvd3seo4hkd4r2ma1d6asjqmhf2m.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.example.fcm.dngmsp.fcmdngmsp"
+                "bundle_id": "com.djamware.myflutter"
               }
             }
           ]
@@ -84,10 +108,10 @@
               "client_type": 3
             },
             {
-              "client_id": "22785475202-4ribc9lekc9rlkd7aqq3r7n2t2nfcqio.apps.googleusercontent.com",
+              "client_id": "22785475202-50kgdvd3seo4hkd4r2ma1d6asjqmhf2m.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
-                "bundle_id": "com.example.fcm.dngmsp.fcmdngmsp"
+                "bundle_id": "com.djamware.myflutter"
               }
             }
           ]
