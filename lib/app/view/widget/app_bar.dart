@@ -5,20 +5,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class IotAppBar {
-
   AppBar build(BuildContext context, bool backHomePage, String title) {
     return AppBar(
-      leading: BackButton(
-          color: Colors.white,
-          onPressed: () => backIotPages(context, backHomePage)),
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      backgroundColor: IOT_BG_COLOR,
+      foregroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new_rounded),
+        color: Colors.white,
+        onPressed: () => backIotPages(context, backHomePage),
+      ),
       centerTitle: true,
+      titleSpacing: 0,
       title: FittedBox(
-          fit: BoxFit.contain,
-          child: Text(title,
-              style: TextStyle(
-                  color: IOT_FG_COLOR,
-                  fontWeight: FontWeight.bold,
-                  fontSize: SP_COMMON_FONT_SIZE.sp)))
+        fit: BoxFit.scaleDown,
+        child: Text(
+          title,
+          maxLines: 1,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: IOT_FG_COLOR,
+            fontWeight: FontWeight.bold,
+            fontSize: SP_COMMON_FONT_SIZE.sp,
+          ),
+        ),
+      ),
     );
   }
 

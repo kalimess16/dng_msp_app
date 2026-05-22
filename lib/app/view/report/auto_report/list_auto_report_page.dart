@@ -66,7 +66,7 @@ class _IotListAutoReportPageState extends State<IotListAutoReportPage>
       child: Scaffold(
         appBar: IotAppBar().build(context, true, 'SỐ LIỆU ĐỊNH KỲ'),
         body: _bodyListMessage(),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF4F8F5),
         bottomNavigationBar: IotBottomNavigatorBar(),
       ),
       onWillPop: () => IotAppBar().backIotPages(context, true),
@@ -75,11 +75,13 @@ class _IotListAutoReportPageState extends State<IotListAutoReportPage>
 
   Widget _bodyListMessage() {
     var _hasInitiation = false;
-    return Consumer<IotListAutoReportStream>(builder: (context, fcm, _) {
-      return FutureBuilder(
-          future: context
-              .watch<IotListAutoReportStream>()
-              .initIotAutoReports(context, _hasInitiation),
+    return Consumer<IotListAutoReportStream>(
+      builder: (context, fcm, _) {
+        return FutureBuilder(
+          future: context.watch<IotListAutoReportStream>().initIotAutoReports(
+            context,
+            _hasInitiation,
+          ),
           builder: ((context, snapshot) {
             if (snapshot.hasData) {
               _hasInitiation = true;
@@ -87,134 +89,163 @@ class _IotListAutoReportPageState extends State<IotListAutoReportPage>
             }
             if (snapshot.hasError)
               return IotExceptionPage(
-                  exception: snapshot.error, isBackHome: true);
+                exception: snapshot.error,
+                isBackHome: true,
+              );
             return IotCircularProgressWidget();
-          }));
-    });
+          }),
+        );
+      },
+    );
   }
 
   Widget _listMessageItem(List<IotAutoReport> data) {
     if (data.isEmpty)
       return Center(
-          child: Text(
-        'IOT',
-        style: TextStyle(
+        child: Text(
+          'IOT',
+          style: TextStyle(
             color: IOT_BG_COLOR,
             fontSize: SP_LARGER_COMMON_FONT_SIZE.sp,
-            fontWeight: FontWeight.bold),
-      ));
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
 
     return ListView.builder(
-        itemCount: data.length + 1,
-        controller: _scrollController,
-        itemBuilder: (context, index) {
-          if (index == data.length - 1) _lastAccessTime = data[index].time;
-          if (index == data.length) {
-            _isLoading = true;
-            return Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Center(
-                child: Opacity(
-                    opacity: (_isLoading && _accessTimes.isNotEmpty) ? 1.0 : 00,
-                    child: (_status == 0
-                        ? CircularProgressIndicator()
-                        : (_status < 0
-                            ? TextButton(
-                                child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        _status == -1
-                                            ? 'MẤT KẾT NỐI'
-                                            : 'TẢI LỖI',
-                                        style: TextStyle(
-                                            color: Colors.red,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      const Icon(
-                                        Icons.refresh,
-                                        color: Colors.black87,
-                                        size: 32,
-                                      )
-                                    ]),
-                                onPressed: () async {
-                                  _status = await context
-                                      .read<IotListAutoReportStream>()
-                                      .loadMoreIotAutoReports(
-                                          context, _lastAccessTime);
-                                })
-                            : Text('')))),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
+      itemCount: data.length + 1,
+      controller: _scrollController,
+      itemBuilder: (context, index) {
+        if (index == data.length - 1) _lastAccessTime = data[index].time;
+        if (index == data.length) {
+          _isLoading = true;
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Center(
+              child: Opacity(
+                opacity: (_isLoading && _accessTimes.isNotEmpty) ? 1.0 : 00,
+                child: (_status == 0
+                    ? CircularProgressIndicator()
+                    : (_status < 0
+                          ? TextButton(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _status == -1 ? 'MẤT KẾT NỐI' : 'TẢI LỖI',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.refresh,
+                                    color: Colors.black87,
+                                    size: 32,
+                                  ),
+                                ],
+                              ),
+                              onPressed: () async {
+                                _status = await context
+                                    .read<IotListAutoReportStream>()
+                                    .loadMoreIotAutoReports(
+                                      context,
+                                      _lastAccessTime,
+                                    );
+                              },
+                            )
+                          : Text(''))),
               ),
-            );
-          }
-          _isLoading = false;
-          return InkWell(
-              child: Container(
-                constraints: BoxConstraints(maxHeight: 0.85.sh),
-                padding: const EdgeInsets.all(10),
+            ),
+          );
+        }
+        _isLoading = false;
+        final status = data[index].status ?? 0;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            elevation: status == 0 ? 2 : 1,
+            shadowColor: Colors.black.withValues(alpha: 0.12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
                 child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        Padding(
-                            child: _showCreatorName(data[index].creator),
-                            padding: const EdgeInsets.only(right: 20)),
-                        Flexible(
-                            fit: FlexFit.loose,
-                            child: Align(
-                                child: _showTime(data[index].time),
-                                alignment: Alignment.bottomRight))
-                      ]),
-                      Flexible(
-                        child: Padding(
-                          child: _showTitle(
-                              data[index].title, data[index].status ?? 0),
-                          padding: const EdgeInsets.only(left: 10, top: 5),
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: status == 0 ? IOT_BG_COLOR : Colors.black26,
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                        fit: FlexFit.loose,
-                      )
-                    ]),
-                decoration: const BoxDecoration(
-                    border: Border(
-                  bottom: BorderSide(color: Colors.black12),
-                )),
+                        const SizedBox(width: 8),
+                        Expanded(child: _showCreatorName(data[index].creator)),
+                        const SizedBox(width: 8),
+                        _showTime(data[index].time),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      child: _showTitle(data[index].title, status),
+                      padding: const EdgeInsets.only(left: 16),
+                    ),
+                  ],
+                ),
               ),
               onTap: () async => await IotNavigatorAutoReportPage().onTap(
-                  context,
-                  data[index].id,
-                  data[index].reportType,
-                  data[index].reportDate,
-                  data[index].title,
-                  false));
-        });
+                context,
+                data[index].id,
+                data[index].reportType,
+                data[index].reportDate,
+                data[index].title,
+                false,
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _showCreatorName(String creatorName) {
     return Text(
       creatorName,
       style: TextStyle(
-          color: Colors.black38,
-          fontSize: 32.sp,
-          fontWeight: FontWeight.normal),
+        color: Colors.black38,
+        fontSize: 32.sp,
+        fontWeight: FontWeight.normal,
+      ),
     );
   }
 
   Widget _showTime(int time) {
-    return Text(IotUtility().parseTimeAutoReport(time),
-        style: TextStyle(
-            color: Colors.black54,
-            fontSize: 32.sp,
-            fontWeight: FontWeight.normal));
+    return Text(
+      IotUtility().parseTimeAutoReport(time),
+      style: TextStyle(
+        color: Colors.black54,
+        fontSize: 32.sp,
+        fontWeight: FontWeight.normal,
+      ),
+    );
   }
 
   Widget _showTitle(String title, int status) {
     return Text(
       title,
       style: TextStyle(
-          color: status == 0 ? Colors.black87 : Colors.black54,
-          fontSize: SP_AUTO_REPORT_FONT_SIZE.sp,
-          fontWeight: status == 0 ? FontWeight.bold : FontWeight.normal),
+        color: status == 0 ? Colors.black87 : Colors.black54,
+        fontSize: SP_AUTO_REPORT_FONT_SIZE.sp,
+        fontWeight: status == 0 ? FontWeight.bold : FontWeight.normal,
+      ),
     );
   }
 }

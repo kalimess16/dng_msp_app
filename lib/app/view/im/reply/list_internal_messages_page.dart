@@ -23,7 +23,8 @@ class IotListInternalMessagesPage extends StatefulWidget {
 }
 
 class _IotListInternalMessagesPageState
-    extends State<IotListInternalMessagesPage> with WidgetsBindingObserver {
+    extends State<IotListInternalMessagesPage>
+    with WidgetsBindingObserver {
   int _lastAccessTime = 0;
   bool _isLoading = false;
   int _status = 0;
@@ -72,7 +73,7 @@ class _IotListInternalMessagesPageState
       child: Scaffold(
         appBar: _appBar(),
         body: _bodyListMessage(),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF4F8F5),
         bottomNavigationBar: IotBottomNavigatorBar(),
       ),
       onWillPop: () => IotAppBar().backIotPages(context, true),
@@ -81,150 +82,183 @@ class _IotListInternalMessagesPageState
 
   AppBar _appBar() {
     return AppBar(
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      backgroundColor: IOT_BG_COLOR,
+      foregroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
       leading: IconButton(
-          onPressed: () async =>
-              await Navigator.of(context).pushNamed(IotRoutes.SEARCH_MSP_PAGE),
-          icon: Icon(
-            Icons.search_sharp,
-            size: 0.055.sh,
-          )),
+        onPressed: () async =>
+            await Navigator.of(context).pushNamed(IotRoutes.SEARCH_MSP_PAGE),
+        icon: const Icon(Icons.search_sharp, size: 28),
+      ),
+      centerTitle: true,
       title: FittedBox(
-          fit: BoxFit.contain,
-          child: Text('THÔNG TIN NỘI BỘ',
-              style: TextStyle(
-                  color: IOT_FG_COLOR,
-                  fontWeight: FontWeight.bold,
-                  fontSize: SP_COMMON_FONT_SIZE.sp))),
+        fit: BoxFit.scaleDown,
+        child: Text(
+          'THÔNG TIN NỘI BỘ',
+          style: TextStyle(
+            color: IOT_FG_COLOR,
+            fontWeight: FontWeight.bold,
+            fontSize: SP_COMMON_FONT_SIZE.sp,
+          ),
+        ),
+      ),
       actions: [
         IconButton(
-          padding: EdgeInsets.only(right: 15),
-            onPressed: () async => await Navigator.of(context)
-                .pushNamed(IotRoutes.COMPOSE_MSP_PAGE_IN_LIST),
-            icon: Icon(
-              Icons.add_outlined,
-              size: 0.05.sh,
-            ))
+          padding: const EdgeInsets.only(right: 12),
+          onPressed: () async => await Navigator.of(
+            context,
+          ).pushNamed(IotRoutes.COMPOSE_MSP_PAGE_IN_LIST),
+          icon: const Icon(Icons.add_outlined, size: 30),
+        ),
       ],
     );
   }
 
   Widget _bodyListMessage() {
     var _hasInitiation = false;
-    return Consumer<IotListInternalMessageStream>(builder: (context, fcm, _) {
-      return FutureBuilder(
+    return Consumer<IotListInternalMessageStream>(
+      builder: (context, fcm, _) {
+        return FutureBuilder(
           future: context
               .watch<IotListInternalMessageStream>()
               .initIotInternalMessages(context, _hasInitiation),
           builder: ((context, snapshot) {
-            if (snapshot.hasData ) {
+            if (snapshot.hasData) {
               _hasInitiation = true;
               var data = snapshot.data as List<IotInternalMessage>;
               return _listMessageItem(data);
             }
             if (snapshot.hasError)
               return IotExceptionPage(
-                  exception: snapshot.error, isBackHome: true);
+                exception: snapshot.error,
+                isBackHome: true,
+              );
             return IotCircularProgressWidget();
-          }));
-    });
+          }),
+        );
+      },
+    );
   }
 
   Widget _listMessageItem(List<IotInternalMessage> data) {
     if (data.isEmpty)
       return Center(
-          child: Text(
-        'IOT',
-        style: TextStyle(
+        child: Text(
+          'IOT',
+          style: TextStyle(
             color: IOT_BG_COLOR,
             fontSize: SP_LARGER_COMMON_FONT_SIZE.sp,
-            fontWeight: FontWeight.bold),
-      ));
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
     return ListView.builder(
-        itemCount: data.length + 1,
-        controller: _scrollController,
-        itemBuilder: (context, index) {
-          if (index == data.length - 1) _lastAccessTime = data[index].time;
-          if (index == data.length) {
-            _isLoading = true;
-            return Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Center(
-                child: Opacity(
-                    opacity: (_isLoading && _accessTimes.isNotEmpty) ? 1.0 : 00,
-                    child: (_status == 0
-                        ? CircularProgressIndicator()
-                        : (_status < 0
-                            ? TextButton(
-                                child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        _status == -1
-                                            ? 'MẤT KẾT NỐI'
-                                            : 'TẢI LỖI',
-                                        style: TextStyle(
-                                            color: Colors.red,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      const Icon(
-                                        Icons.refresh,
-                                        color: Colors.black87,
-                                        size: 32,
-                                      )
-                                    ]),
-                                onPressed: () async {
-                                  _status = await context
-                                      .read<IotListInternalMessageStream>()
-                                      .loadMoreIotInternalMessages(
-                                          context, _lastAccessTime);
-                                })
-                            : Text('')))),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
+      itemCount: data.length + 1,
+      controller: _scrollController,
+      itemBuilder: (context, index) {
+        if (index == data.length - 1) _lastAccessTime = data[index].time;
+        if (index == data.length) {
+          _isLoading = true;
+          return Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Center(
+              child: Opacity(
+                opacity: (_isLoading && _accessTimes.isNotEmpty) ? 1.0 : 00,
+                child: (_status == 0
+                    ? CircularProgressIndicator()
+                    : (_status < 0
+                          ? TextButton(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _status == -1 ? 'MẤT KẾT NỐI' : 'TẢI LỖI',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.refresh,
+                                    color: Colors.black87,
+                                    size: 32,
+                                  ),
+                                ],
+                              ),
+                              onPressed: () async {
+                                _status = await context
+                                    .read<IotListInternalMessageStream>()
+                                    .loadMoreIotInternalMessages(
+                                      context,
+                                      _lastAccessTime,
+                                    );
+                              },
+                            )
+                          : Text(''))),
               ),
-            );
-          }
-          _isLoading = false;
-          return InkWell(
-              child: Container(
-                constraints: BoxConstraints(maxHeight: 0.09.sh),
-                padding: const EdgeInsets.all(10),
+            ),
+          );
+        }
+        _isLoading = false;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            elevation: (data[index].status ?? 0) == 0 ? 2 : 1,
+            shadowColor: Colors.black.withValues(alpha: 0.12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
                 child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                          child: IotShortNameCircular(
-                              type: 'P', creatorName: data[index].creatorName),
-                          padding: const EdgeInsets.only(right: 10)),
-                      Flexible(
-                        fit: FlexFit.loose,
-                        child: Container(
-                          child: Column(children: [
-                            _showGroupAndTime(data[index].status ?? 0,
-                                data[index].groupName ?? ' ', data[index].time),
-                            Flexible(
-                                child: Align(
-                                  child: _showTitleMessage(data[index].title,
-                                      data[index].status ?? 0),
-                                  alignment: Alignment.centerLeft,
-                                ),
-                                fit: FlexFit.loose)
-                          ]),
-                          decoration: const BoxDecoration(
-                              border: Border(
-                            bottom: BorderSide(color: Colors.black12),
-                          )),
-                        ),
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      child: IotShortNameCircular(
+                        type: 'P',
+                        creatorName: data[index].creatorName,
                       ),
-                    ]),
+                      padding: const EdgeInsets.only(right: 10),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _showGroupAndTime(
+                            data[index].status ?? 0,
+                            data[index].groupName ?? ' ',
+                            data[index].time,
+                          ),
+                          const SizedBox(height: 6),
+                          _showTitleMessage(
+                            data[index].title,
+                            data[index].status ?? 0,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
               onTap: () async => await IotNavigatorInternalMessage().onTap(
-                  context,
-                  data[index].originalId,
-                  data[index].originalCreator,
-                  data[index].groupName ?? '',
-                  false,
-                  ''));
-        });
+                context,
+                data[index].originalId,
+                data[index].originalCreator,
+                data[index].groupName ?? '',
+                false,
+                '',
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _showGroupAndTime(int status, String groupName, int time) {
@@ -235,17 +269,21 @@ class _IotListInternalMessagesPageState
           child: Text(
             groupName,
             style: TextStyle(
-                color: status == 0 ? Colors.black : Colors.black87,
-                fontSize: SP_SMALL_COMMON_FONT_SIZE.sp,
-                fontWeight: status == 0 ? FontWeight.bold : FontWeight.normal),
+              color: status == 0 ? Colors.black : Colors.black87,
+              fontSize: SP_SMALL_COMMON_FONT_SIZE.sp,
+              fontWeight: status == 0 ? FontWeight.bold : FontWeight.normal,
+            ),
           ),
           fit: FlexFit.loose,
         ),
-        Text(IotUtility().parseTimeMessage(time),
-            style: TextStyle(
-                color: Colors.black87,
-                fontSize: SP_SMALL_COMMON_FONT_SIZE.sp,
-                fontWeight: FontWeight.normal))
+        Text(
+          IotUtility().parseTimeMessage(time),
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: SP_SMALL_COMMON_FONT_SIZE.sp,
+            fontWeight: FontWeight.normal,
+          ),
+        ),
       ],
     );
   }
@@ -253,10 +291,13 @@ class _IotListInternalMessagesPageState
   Widget _showTitleMessage(String title, int status) {
     return Text(
       title,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
       style: TextStyle(
-          color: status == 0 ? Colors.black87 : Colors.black54,
-          fontSize: SP_COMMON_FONT_SIZE.sp,
-          fontWeight: status == 0 ? FontWeight.bold : FontWeight.normal),
+        color: status == 0 ? Colors.black87 : Colors.black54,
+        fontSize: SP_COMMON_FONT_SIZE.sp,
+        fontWeight: status == 0 ? FontWeight.bold : FontWeight.normal,
+      ),
     );
   }
 }

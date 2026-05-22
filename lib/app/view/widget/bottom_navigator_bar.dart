@@ -9,32 +9,65 @@ import 'package:provider/provider.dart';
 class IotBottomNavigatorBar extends StatelessWidget {
   static int selectedIotBottomNavigatorBar = 0;
   final Map<int, List<dynamic>> _items = {
-    0: ['IOT', IotRoutes.HOME_PAGE, const Icon(Icons.home_outlined, size: 28), 'N'],
-    1: ['Số liệu định kỳ', IotRoutes.AUTO_REPORT_PAGE, const Icon(IotAppIcons.auto_report, size: 28), 'AR'],
-    2: ['Thông tin', IotRoutes.MSP_PAGE, const Icon(IotAppIcons.msp, size: 28), 'IM'],
+    0: [
+      'IOT',
+      IotRoutes.HOME_PAGE,
+      const Icon(Icons.home_outlined, size: 28),
+      'N',
+    ],
+    1: [
+      'Số liệu định kỳ',
+      IotRoutes.AUTO_REPORT_PAGE,
+      const Icon(IotAppIcons.auto_report, size: 28),
+      'AR',
+    ],
+    2: [
+      'Thông tin',
+      IotRoutes.MSP_PAGE,
+      const Icon(IotAppIcons.msp, size: 28),
+      'IM',
+    ],
   };
 
   @override
   Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      items: _buildBarItems(),
-      selectedItemColor: IOT_FG_COLOR,
-      selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold),
-      backgroundColor: IOT_BG_COLOR,
-      type: BottomNavigationBarType.fixed,
-      unselectedItemColor: Colors.black87,
-      currentIndex: IotBottomNavigatorBar.selectedIotBottomNavigatorBar,
-      onTap: ((index) {
-        IotBottomNavigatorBar.selectedIotBottomNavigatorBar = index;
-        switch (index) {
-          case 0:
-            Navigator.popUntil(context, ModalRoute.withName(IotRoutes.HOME_PAGE));
-            break;
-          default:
-            Navigator.pushNamed(context, _items[index]![1]);
-            break;
-        }
-      }),
+    return Container(
+      decoration: BoxDecoration(
+        color: IOT_BG_COLOR,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 14,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: BottomNavigationBar(
+        items: _buildBarItems(),
+        selectedItemColor: IOT_FG_COLOR,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+        backgroundColor: IOT_BG_COLOR,
+        elevation: 0,
+        type: BottomNavigationBarType.fixed,
+        unselectedItemColor: Colors.white70,
+        currentIndex: IotBottomNavigatorBar.selectedIotBottomNavigatorBar,
+        showUnselectedLabels: true,
+        onTap: ((index) {
+          IotBottomNavigatorBar.selectedIotBottomNavigatorBar = index;
+          switch (index) {
+            case 0:
+              Navigator.popUntil(
+                context,
+                ModalRoute.withName(IotRoutes.HOME_PAGE),
+              );
+              break;
+            default:
+              Navigator.pushNamed(context, _items[index]![1]);
+              break;
+          }
+        }),
+      ),
     );
   }
 
@@ -49,6 +82,7 @@ class IotBottomNavigatorBar extends StatelessWidget {
         case 'IM':
           _nav = BottomNavigationBarItem(
             icon: Stack(
+              clipBehavior: Clip.none,
               children: <Widget>[value[2], _buildMessagePositioned(false)],
             ),
             label: value[0],
@@ -57,6 +91,7 @@ class IotBottomNavigatorBar extends StatelessWidget {
         case 'AR':
           _nav = BottomNavigationBarItem(
             icon: Stack(
+              clipBehavior: Clip.none,
               children: <Widget>[value[2], _buildAutoReportPositioned(false)],
             ),
             label: value[0],
@@ -70,40 +105,56 @@ class IotBottomNavigatorBar extends StatelessWidget {
 
   Widget _buildMessagePositioned(bool isSelected) {
     return Consumer<IotListInternalMessageStream>(
-        builder: (context, fcm, _) => FutureBuilder<int>(
-            future: context.read<IotListInternalMessageStream>().countUnreadInternalMessage(),
-            builder: (context, snapshot) {
-              return (snapshot.hasData && snapshot.data! > 0
-                  ? _positioned(snapshot.data as int)
-                  : SizedBox());
-            }));
+      builder: (context, fcm, _) => FutureBuilder<int>(
+        future: context
+            .read<IotListInternalMessageStream>()
+            .countUnreadInternalMessage(),
+        builder: (context, snapshot) {
+          return (snapshot.hasData && snapshot.data! > 0
+              ? _positioned(snapshot.data as int)
+              : SizedBox());
+        },
+      ),
+    );
   }
 
   Widget _buildAutoReportPositioned(bool isSelected) {
     return Consumer<IotListAutoReportStream>(
-        builder: (context, fcm, _) => FutureBuilder<int>(
-            future: context.read<IotListAutoReportStream>().countUnreadAutoReports(),
-            builder: (context, snapshot) {
-              return (snapshot.hasData && snapshot.data! > 0
-                  ? _positioned(snapshot.data as int)
-                  : SizedBox());
-            }));
+      builder: (context, fcm, _) => FutureBuilder<int>(
+        future: context
+            .read<IotListAutoReportStream>()
+            .countUnreadAutoReports(),
+        builder: (context, snapshot) {
+          return (snapshot.hasData && snapshot.data! > 0
+              ? _positioned(snapshot.data as int)
+              : SizedBox());
+        },
+      ),
+    );
   }
 
   Widget _positioned(int count) {
     return Positioned(
-        right: 0,
-        child: Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: Colors.red,
-              borderRadius: BorderRadius.circular(3),
-            ),
-            constraints: const BoxConstraints(minWidth: 14, maxHeight: 18),
-            child: const Text(
-              'N',
-              style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            )));
+      right: -8,
+      top: -6,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: IOT_BG_COLOR, width: 1.5),
+        ),
+        constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+        child: Text(
+          count > 99 ? '99+' : '$count',
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
   }
 }
