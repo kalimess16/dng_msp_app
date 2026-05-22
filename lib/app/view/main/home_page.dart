@@ -92,46 +92,53 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
   }
 
   Widget _buildIotMainAppBar() {
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+    final topPadding = MediaQuery.of(context).padding.top;
+    final horizontalPadding = isLandscape ? 16.0 : 20.0;
+    final logoSize = isLandscape ? 46.0 : 74.0;
+    final titleFontSize = isLandscape ? 28.0 : 74.sp;
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(
-        20,
-        MediaQuery.of(context).padding.top + 16,
-        20,
-        16,
+        horizontalPadding,
+        topPadding + (isLandscape ? 8 : 16),
+        horizontalPadding,
+        isLandscape ? 10 : 16,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              SizedBox(
-                height: 74,
-                width: 74,
-                child: Image.asset(IOT_IMAGE, fit: BoxFit.contain),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    IOT_APP_TITLE,
-                    maxLines: 1,
-                    style: TextStyle(
-                      color: IOT_FG_COLOR,
-                      fontSize: 74.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+      child: isLandscape
+          ? Row(
+              children: [
+                SizedBox(
+                  height: logoSize,
+                  width: logoSize,
+                  child: Image.asset(IOT_IMAGE, fit: BoxFit.contain),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _accountInformation(),
-        ],
-      ),
+                const SizedBox(width: 12),
+                Expanded(child: _buildHeaderTitle(titleFontSize)),
+                const SizedBox(width: 12),
+                Flexible(child: _accountInformation(compact: true)),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    SizedBox(
+                      height: logoSize,
+                      width: logoSize,
+                      child: Image.asset(IOT_IMAGE, fit: BoxFit.contain),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(child: _buildHeaderTitle(titleFontSize)),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _accountInformation(),
+              ],
+            ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [Colors.white, IOT_BG_COLOR],
@@ -151,7 +158,23 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
     );
   }
 
-  Widget _accountInformation() {
+  Widget _buildHeaderTitle(double fontSize) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Text(
+        IOT_APP_TITLE,
+        maxLines: 1,
+        style: TextStyle(
+          color: IOT_FG_COLOR,
+          fontSize: fontSize,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _accountInformation({bool compact = false}) {
     return FutureBuilder(
       future: IotSharedPreferences().get(),
       builder: ((context, snapshot) {
@@ -175,18 +198,29 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.account_circle_outlined,
                         color: Colors.white,
-                        size: 20,
+                        size: compact ? 18 : 20,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        prefs[1],
-                        style: TextStyle(
-                          fontSize: SP_SMALL_COMMON_FONT_SIZE.sp,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
+                      SizedBox(width: compact ? 6 : 8),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: compact
+                              ? 190
+                              : MediaQuery.of(context).size.width - 90,
+                        ),
+                        child: Text(
+                          prefs[1],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: compact
+                                ? 16
+                                : SP_SMALL_COMMON_FONT_SIZE.sp,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ],
@@ -211,32 +245,42 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
             return IotExceptionPage(
               exception: IotException(code: 403, error: 'Y'),
             );
-          List<Widget> _listItems = [];
-          IotRoutes.iotListApps.forEach((key, value) {
-            var _item = _buildHomeActionCard(value);
-            _listItems.add(_item);
-          });
 
           return Container(
             child: LayoutBuilder(
               builder: (context, constraints) {
+                final isLandscape =
+                    MediaQuery.of(context).orientation == Orientation.landscape;
                 final wideMenu = constraints.maxWidth >= 420;
-                final sidePadding = wideMenu ? 80.0 : 40.0;
-                final itemRatio = wideMenu ? 1.62 : 1.40;
+                final sidePadding = isLandscape
+                    ? 24.0
+                    : wideMenu
+                    ? 80.0
+                    : 40.0;
+                final itemRatio = isLandscape
+                    ? 1.80
+                    : wideMenu
+                    ? 1.62
+                    : 1.40;
                 return GridView.count(
                   scrollDirection: Axis.vertical,
                   shrinkWrap: true,
                   padding: EdgeInsets.fromLTRB(
                     sidePadding,
-                    14,
+                    isLandscape ? 10 : 14,
                     sidePadding,
                     12,
                   ),
-                  crossAxisCount: 2,
+                  crossAxisCount: isLandscape ? 4 : 2,
                   crossAxisSpacing: 8,
                   mainAxisSpacing: 8,
                   childAspectRatio: itemRatio,
-                  children: _listItems,
+                  children: IotRoutes.iotListApps.values
+                      .map(
+                        (value) =>
+                            _buildHomeActionCard(value, compact: isLandscape),
+                      )
+                      .toList(),
                 );
               },
             ),
@@ -255,46 +299,11 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildHomeActionCard(List<dynamic> value) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      elevation: 2,
-      shadowColor: Colors.black.withValues(alpha: 0.16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () => Navigator.pushNamed(context, value[1]),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 62,
-                height: 62,
-                decoration: BoxDecoration(
-                  color: IOT_BG_COLOR.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(value[2], size: 40, color: IOT_BG_COLOR),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                value[0],
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: SP_COMMON_FONT_SIZE.sp,
-                  height: 1.12,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+  Widget _buildHomeActionCard(List<dynamic> value, {bool compact = false}) {
+    return _HomeActionCard(
+      value: value,
+      onTap: () => Navigator.pushNamed(context, value[1]),
+      compact: compact,
     );
   }
 
@@ -448,5 +457,68 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
         SnackBar(content: Text('$s'), duration: Duration(seconds: 30)),
       );
     }
+  }
+}
+
+class _HomeActionCard extends StatelessWidget {
+  final List<dynamic> value;
+  final VoidCallback onTap;
+  final bool compact;
+
+  const _HomeActionCard({
+    required this.value,
+    required this.onTap,
+    this.compact = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final iconBoxSize = compact ? 44.0 : 62.0;
+    final iconSize = compact ? 30.0 : 40.0;
+    final titleFontSize = compact ? 14.0 : SP_COMMON_FONT_SIZE.sp;
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: compact ? 6 : 8,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: iconBoxSize,
+                height: iconBoxSize,
+                decoration: BoxDecoration(
+                  color: IOT_BG_COLOR.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(value[2], size: iconSize, color: IOT_BG_COLOR),
+              ),
+              SizedBox(height: compact ? 4 : 6),
+              Text(
+                value[0],
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: titleFontSize,
+                  height: 1.12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

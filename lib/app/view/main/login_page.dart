@@ -11,6 +11,21 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+const _loginGradientTop = Color(0xFFE7F3EC);
+const _loginGradientMid = Color(0xFF7FC796);
+const _loginGradientBottom = Color(0xFF007A30);
+const _loginSurfaceColor = Color(0xFFF4FBF6);
+const _loginLogoSurfaceColor = Color(0xFFE4F2E8);
+const _loginButtonColor = Color(0xFFF8FCF9);
+const _loginButtonBorderColor = Color(0xFFC8E2D1);
+const _loginTextColor = Color(0xFF063D22);
+const _loginMutedTextColor = Color(0xFF557363);
+const _loginAccentColor = Color(0xFFB8D84E);
+const _loginWarningBgColor = Color(0xFFFFF7E4);
+const _loginWarningBorderColor = Color(0xFFE5C76A);
+const _loginWarningTextColor = Color(0xFF7A4A00);
+const _loginFooterColor = Color(0xFF00772F);
+
 class IotLoginPage extends StatefulWidget {
   @override
   _IotLoginPageState createState() => _IotLoginPageState();
@@ -23,10 +38,12 @@ class _IotLoginPageState extends State<IotLoginPage> {
   Widget build(BuildContext context) {
     return IotPopScope(
       child: Scaffold(
+        backgroundColor: _loginGradientBottom,
         body: StreamBuilder(
           stream: _loginIotViewModel.loginIotStream,
           builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-            if (snapshot.data != null && snapshot.data == LOGIN_SUCCESS_KEY) {
+            final loginStatus = snapshot.data;
+            if (loginStatus == LOGIN_SUCCESS_KEY) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (!mounted) return;
                 Navigator.pushNamedAndRemoveUntil(
@@ -37,70 +54,27 @@ class _IotLoginPageState extends State<IotLoginPage> {
               });
             }
 
-            var _wait =
-                (snapshot.data != null && snapshot.data == LOGIN_AUTH_KEY);
-            var _fail =
-                (snapshot.data != null && snapshot.data == LOGIN_FAIL_KEY);
-            var _networkError = (snapshot.data != null &&
-                snapshot.data == LOGIN_NETWORK_ERROR_KEY);
-            var _vendor =
-                (snapshot.data != null && snapshot.data == LOGIN_VENDOR);
             return Container(
               width: 1.sw,
               height: 1.sh,
               decoration: _buildBoxDecoration(),
               child: SafeArea(
+                bottom: false,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     return SingleChildScrollView(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 32,
+                        horizontal: 20,
+                        vertical: 28,
                       ),
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight - 64,
+                          minHeight: constraints.maxHeight - 56,
                         ),
                         child: Center(
-                          child: Container(
-                            width: double.infinity,
-                            constraints: const BoxConstraints(maxWidth: 420),
-                            padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.95),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: IOT_BG_COLOR.withValues(alpha: 0.08),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.14),
-                                  blurRadius: 28,
-                                  offset: const Offset(0, 14),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _buildTitle(),
-                                const SizedBox(height: 30),
-                                (_wait
-                                    ? SizedBox(
-                                        height: 52,
-                                        child: CircularProgressIndicator(
-                                          color: IOT_BG_COLOR,
-                                          strokeWidth: 3,
-                                        ),
-                                      )
-                                    : _signInGroupButton()),
-                                _showFailLoginMessage(
-                                  _vendor,
-                                  _fail,
-                                  _networkError,
-                                ),
-                              ],
-                            ),
+                          child: _buildLoginCard(
+                            isWaiting: loginStatus == LOGIN_AUTH_KEY,
+                            loginStatus: loginStatus,
                           ),
                         ),
                       ),
@@ -130,26 +104,45 @@ class _IotLoginPageState extends State<IotLoginPage> {
     super.dispose();
   }
 
-  Widget _signInGroupButton() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _signInGoogleButton(),
-        const SizedBox(height: 12),
-        (Platform.isIOS ? _signInWithAppleButton() : SizedBox(height: 5)),
-      ],
-    );
-  }
-
   BoxDecoration _buildBoxDecoration() {
     return const BoxDecoration(
       gradient: LinearGradient(
-        colors: [Colors.white, IOT_BG_COLOR],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        stops: [0.0, 1.0],
+        colors: [_loginGradientTop, _loginGradientMid, _loginGradientBottom],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        stops: [0.0, 0.54, 1.0],
         tileMode: TileMode.clamp,
+      ),
+    );
+  }
+
+  Widget _buildLoginCard({
+    required bool isWaiting,
+    required String? loginStatus,
+  }) {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxWidth: 380),
+      padding: const EdgeInsets.fromLTRB(24, 26, 24, 22),
+      decoration: BoxDecoration(
+        color: _loginSurfaceColor.withValues(alpha: 0.98),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.16),
+            blurRadius: 26,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildTitle(),
+          const SizedBox(height: 28),
+          isWaiting ? _buildWaitingState() : _signInGroupButton(),
+          _showLoginMessage(loginStatus),
+        ],
       ),
     );
   }
@@ -159,35 +152,94 @@ class _IotLoginPageState extends State<IotLoginPage> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Container(
-          height: 0.16.sh,
-          constraints: const BoxConstraints(maxHeight: 150, maxWidth: 150),
-          padding: const EdgeInsets.all(14),
+          height: 96,
+          width: 96,
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: _loginLogoSurfaceColor,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: IOT_BG_COLOR.withValues(alpha: 0.10)),
+            border: Border.all(color: IOT_BG_COLOR.withValues(alpha: 0.12)),
           ),
           child: Image.asset(IOT_IMAGE, fit: BoxFit.contain),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 18),
+        Text(
+          IOT_APP_NAME,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+            color: _loginTextColor,
+          ),
+        ),
+        const SizedBox(height: 4),
         Text(
           IOT_DESCRIPTION,
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 45.sp,
-            fontWeight: FontWeight.bold,
-            color: IOT_BG_COLOR,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: _loginMutedTextColor,
           ),
         ),
         Container(
-          width: 72,
-          height: 4,
+          width: 46,
+          height: 3,
           margin: const EdgeInsets.only(top: 14),
           decoration: BoxDecoration(
-            color: IOT_FG_COLOR,
+            color: _loginAccentColor,
             borderRadius: BorderRadius.circular(8),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildWaitingState() {
+    return Container(
+      height: 54,
+      width: double.infinity,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: _loginButtonColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _loginButtonBorderColor),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(
+              color: IOT_BG_COLOR,
+              strokeWidth: 2.6,
+            ),
+          ),
+          SizedBox(width: 12),
+          Text(
+            'Đang xác thực...',
+            style: TextStyle(
+              color: _loginTextColor,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _signInGroupButton() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _signInGoogleButton(),
+        if (Platform.isIOS) ...[
+          const SizedBox(height: 12),
+          _signInWithAppleButton(),
+        ],
       ],
     );
   }
@@ -218,10 +270,10 @@ class _IotLoginPageState extends State<IotLoginPage> {
       height: 54,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: IOT_BG_COLOR,
+          backgroundColor: _loginButtonColor,
+          foregroundColor: _loginTextColor,
           elevation: 0,
-          side: BorderSide(color: IOT_BG_COLOR.withValues(alpha: 0.16)),
+          side: const BorderSide(color: _loginButtonBorderColor),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: const EdgeInsets.symmetric(horizontal: 18),
         ),
@@ -229,8 +281,8 @@ class _IotLoginPageState extends State<IotLoginPage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(iconPath, height: 28, width: 28),
-            const SizedBox(width: 14),
+            Image.asset(iconPath, height: 26, width: 26),
+            const SizedBox(width: 12),
             Flexible(
               child: Text(
                 title,
@@ -239,7 +291,7 @@ class _IotLoginPageState extends State<IotLoginPage> {
                 style: const TextStyle(
                   color: IOT_BG_COLOR,
                   fontSize: 16,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ),
@@ -249,68 +301,140 @@ class _IotLoginPageState extends State<IotLoginPage> {
     );
   }
 
-  Widget _showFailLoginMessage(
-    bool isVendor,
-    bool isFail,
-    bool isNetworkError,
-  ) {
-    if (isVendor)
-      return Padding(
-        padding: const EdgeInsets.only(top: 18),
+  Widget _showLoginMessage(String? loginStatus) {
+    switch (loginStatus) {
+      case LOGIN_VENDOR:
+        return _buildUpgradeMessage();
+      case LOGIN_NETWORK_ERROR_KEY:
+        return _buildStatusMessage(
+          icon: Icons.wifi_off_outlined,
+          title: 'Không kết nối được',
+          message: 'Kiểm tra mạng, Google Play Services hoặc server IOT.',
+        );
+      case LOGIN_FIREBASE_ERROR_KEY:
+        return _buildStatusMessage(
+          icon: Icons.gpp_bad_outlined,
+          title: 'Firebase chưa xác thực được',
+          message: 'Kiểm tra Google provider, SHA và google-services.json.',
+        );
+      case LOGIN_BACKEND_ERROR_KEY:
+        return _buildStatusMessage(
+          icon: Icons.person_off_outlined,
+          title: 'Server IOT từ chối đăng nhập',
+          message: 'Firebase đã xác thực, nhưng tài khoản chưa được cấp quyền.',
+        );
+      case LOGIN_TOKEN_SAVE_ERROR_KEY:
+        return _buildStatusMessage(
+          icon: Icons.save_outlined,
+          title: 'Không lưu được phiên đăng nhập',
+          message: 'Thử đăng nhập lại hoặc xóa dữ liệu ứng dụng.',
+        );
+      case LOGIN_FAIL_KEY:
+        return _buildStatusMessage(
+          icon: Icons.error_outline,
+          title: 'Không đăng nhập được',
+          message: 'Chọn đúng tài khoản Google đã được cấp quyền.',
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildStatusMessage({
+    required IconData icon,
+    required String title,
+    required String message,
+  }) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 18),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _loginWarningBgColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _loginWarningBorderColor),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: _loginWarningTextColor, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: _loginWarningTextColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    color: _loginWarningTextColor,
+                    fontSize: 13,
+                    height: 1.28,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpgradeMessage() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 18),
+      child: SizedBox(
+        width: double.infinity,
+        height: 52,
         child: ElevatedButton(
-          child: Text(
-            'NÂNG CẤP PHIÊN BẢN MỚI',
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _loginWarningBgColor,
+            foregroundColor: _loginWarningTextColor,
+            elevation: 0,
+            side: const BorderSide(color: _loginWarningBorderColor),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          child: const Text(
+            'Nâng cấp phiên bản mới',
             softWrap: true,
-            style: TextStyle(fontSize: 48.sp, color: IOT_FG_COLOR),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
           ),
           onPressed: () async {
             final url = Uri.parse(IOT_UPGRADE_APP_URL);
             if (await canLaunchUrl(url)) {
               await launchUrl(url);
-            } else
+            } else {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Không nâng cấp được IOT !!')),
+                const SnackBar(content: Text('Không nâng cấp được IOT')),
               );
+            }
           },
         ),
-      );
-    if (isFail || isNetworkError)
-      return Padding(
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.amber.withValues(alpha: 0.14),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.amber.withValues(alpha: 0.35)),
-          ),
-          child: Text(
-            isNetworkError
-                ? 'LỖI KẾT NỐI GOOGLE. KIỂM TRA INTERNET / GOOGLE PLAY SERVICES'
-                : 'LỖI XÁC THỰC',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 38.sp,
-              fontWeight: FontWeight.bold,
-              color: IOT_BG_COLOR,
-            ),
-          ),
-        ),
-        padding: EdgeInsets.only(top: 18),
-      );
-    return SizedBox();
+      ),
+    );
   }
 
   Widget _bottomNavBar() {
     return Container(
-      constraints: const BoxConstraints(maxHeight: 42, minHeight: 28),
+      constraints: const BoxConstraints(maxHeight: 40, minHeight: 28),
       alignment: Alignment.bottomRight,
       padding: const EdgeInsets.only(right: 15, bottom: 8, top: 8),
-      color: IOT_BG_COLOR,
+      color: _loginFooterColor,
       child: Text(
         IOT_AUTHOR,
         style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.9),
+          color: Colors.white.withValues(alpha: 0.88),
           fontSize: 28.sp,
           fontWeight: FontWeight.w600,
         ),

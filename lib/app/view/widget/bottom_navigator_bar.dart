@@ -31,6 +31,11 @@ class IotBottomNavigatorBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+    final iconSize = isLandscape ? 22.0 : 28.0;
+    final labelSize = isLandscape ? 11.0 : 14.0;
+
     return Container(
       decoration: BoxDecoration(
         color: IOT_BG_COLOR,
@@ -42,48 +47,64 @@ class IotBottomNavigatorBar extends StatelessWidget {
           ),
         ],
       ),
-      child: BottomNavigationBar(
-        items: _buildBarItems(),
-        selectedItemColor: IOT_FG_COLOR,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
-        backgroundColor: IOT_BG_COLOR,
-        elevation: 0,
-        type: BottomNavigationBarType.fixed,
-        unselectedItemColor: Colors.white70,
-        currentIndex: IotBottomNavigatorBar.selectedIotBottomNavigatorBar,
-        showUnselectedLabels: true,
-        onTap: ((index) {
-          IotBottomNavigatorBar.selectedIotBottomNavigatorBar = index;
-          switch (index) {
-            case 0:
-              Navigator.popUntil(
-                context,
-                ModalRoute.withName(IotRoutes.HOME_PAGE),
-              );
-              break;
-            default:
-              Navigator.pushNamed(context, _items[index]![1]);
-              break;
-          }
-        }),
+      child: MediaQuery.removePadding(
+        context: context,
+        removeBottom: isLandscape,
+        child: SizedBox(
+          height: isLandscape ? 56 : null,
+          child: BottomNavigationBar(
+            items: _buildBarItems(iconSize),
+            selectedItemColor: IOT_FG_COLOR,
+            selectedFontSize: labelSize,
+            unselectedFontSize: labelSize,
+            selectedLabelStyle: TextStyle(
+              fontSize: labelSize,
+              fontWeight: FontWeight.bold,
+            ),
+            unselectedLabelStyle: TextStyle(
+              fontSize: labelSize,
+              fontWeight: FontWeight.w600,
+            ),
+            backgroundColor: IOT_BG_COLOR,
+            elevation: 0,
+            type: BottomNavigationBarType.fixed,
+            unselectedItemColor: Colors.white70,
+            currentIndex: IotBottomNavigatorBar.selectedIotBottomNavigatorBar,
+            showUnselectedLabels: true,
+            onTap: ((index) {
+              IotBottomNavigatorBar.selectedIotBottomNavigatorBar = index;
+              switch (index) {
+                case 0:
+                  Navigator.popUntil(
+                    context,
+                    ModalRoute.withName(IotRoutes.HOME_PAGE),
+                  );
+                  break;
+                default:
+                  Navigator.pushNamed(context, _items[index]![1]);
+                  break;
+              }
+            }),
+          ),
+        ),
       ),
     );
   }
 
-  List<BottomNavigationBarItem> _buildBarItems() {
+  List<BottomNavigationBarItem> _buildBarItems(double iconSize) {
     List<BottomNavigationBarItem> _navItems = [];
     _items.forEach((key, value) {
       var _nav;
+      final icon = _iconWithSize(value[2], iconSize);
       switch (value[3]) {
         case 'N':
-          _nav = BottomNavigationBarItem(icon: value[2], label: value[0]);
+          _nav = BottomNavigationBarItem(icon: icon, label: value[0]);
           break;
         case 'IM':
           _nav = BottomNavigationBarItem(
             icon: Stack(
               clipBehavior: Clip.none,
-              children: <Widget>[value[2], _buildMessagePositioned(false)],
+              children: <Widget>[icon, _buildMessagePositioned(false)],
             ),
             label: value[0],
           );
@@ -92,7 +113,7 @@ class IotBottomNavigatorBar extends StatelessWidget {
           _nav = BottomNavigationBarItem(
             icon: Stack(
               clipBehavior: Clip.none,
-              children: <Widget>[value[2], _buildAutoReportPositioned(false)],
+              children: <Widget>[icon, _buildAutoReportPositioned(false)],
             ),
             label: value[0],
           );
@@ -101,6 +122,13 @@ class IotBottomNavigatorBar extends StatelessWidget {
       _navItems.add(_nav);
     });
     return _navItems;
+  }
+
+  Widget _iconWithSize(dynamic icon, double size) {
+    if (icon is Icon) {
+      return Icon(icon.icon, size: size);
+    }
+    return Icon(icon as IconData, size: size);
   }
 
   Widget _buildMessagePositioned(bool isSelected) {

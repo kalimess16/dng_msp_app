@@ -12,10 +12,9 @@ packages:
   android_id:
     dependency: "direct main"
     description:
-      name: android_id
-      sha256: "50d62501d623a7e7358b3ceffd1bdd9b420292eba66cec8347d33ed10791f28e"
-      url: "https://pub.dev"
-    source: hosted
+      path: "third_party/android_id"
+      relative: true
+    source: path
     version: "0.5.1"
   args:
     dependency: transitive

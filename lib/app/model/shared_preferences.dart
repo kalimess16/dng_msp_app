@@ -12,13 +12,21 @@ class IotSharedPreferences {
     return await prefs.clear();
   }
 
-  void set(String wsToken, String fullName, String email, String username) async {
+  Future<bool> set(
+    String wsToken,
+    String fullName,
+    String email,
+    String username,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      prefs.setString(iotPrefsWsToken, wsToken);
-      prefs.setString(iotPrefsWsFullName, fullName);
-      prefs.setString(iotPrefsWsEmail, email);
-      prefs.setString(iotPrefsWsUsername, username);
+      final results = await Future.wait([
+        prefs.setString(iotPrefsWsToken, wsToken),
+        prefs.setString(iotPrefsWsFullName, fullName),
+        prefs.setString(iotPrefsWsEmail, email),
+        prefs.setString(iotPrefsWsUsername, username),
+      ]);
+      return results.every((result) => result);
     } catch (exp) {
       throw IotException(code: 0);
     }
@@ -27,14 +35,15 @@ class IotSharedPreferences {
   Future<List<String>> get() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      if (prefs.get(iotPrefsWsToken) == null || prefs.get(iotPrefsWsUsername) == null)
+      if (prefs.get(iotPrefsWsToken) == null ||
+          prefs.get(iotPrefsWsUsername) == null)
         return [];
       else
         return [
           prefs.get(iotPrefsWsToken) as String,
           prefs.get(iotPrefsWsFullName) as String,
           prefs.get(iotPrefsWsEmail) as String,
-          prefs.get(iotPrefsWsUsername) as String
+          prefs.get(iotPrefsWsUsername) as String,
         ];
     } catch (exp) {
       throw IotException(code: 0);

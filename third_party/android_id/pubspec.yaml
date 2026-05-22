@@ -1,0 +1,19 @@
+name: android_id
+description: Local patched copy of android_id 0.5.1 for this project.
+version: 0.5.1
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.10.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: dev.fluttercommunity.android_id
+        pluginClass: AndroidIdPlugin

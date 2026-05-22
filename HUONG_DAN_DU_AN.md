@@ -175,6 +175,15 @@ API liên quan:
 - `logout_iot`
 - `listUserLogs`
 
+Ghi chú sửa lỗi đăng nhập ngày 2026-05-22:
+
+- Log trên emulator cho thấy Google/Firebase Auth đã xác thực được user, sau đó API `loginWithGmail` cũng trả JSON user. Vì vậy lỗi hiển thị chung `Lỗi xác thực` không đủ để phân biệt Firebase, backend hay lưu session.
+- `IotAccountService.loginIot()` đã đổi FCM token thành tùy chọn. Nếu `FirebaseMessaging.instance.getToken()` lỗi hoặc trả `null`, app vẫn gửi request login với `fcmtoken` rỗng thay vì làm hỏng toàn bộ đăng nhập.
+- `IotSharedPreferences.set()` đã đổi sang `Future<bool>` và luồng login chờ lưu đủ `wstoken`, `fullname`, `email`, `username` trước khi phát `LOGIN_SUCCESS_KEY`.
+- `IotAccountStream` tách trạng thái lỗi: `FIREBASE_ERROR`, `BACKEND_ERROR`, `TOKEN_SAVE_ERROR`, `NETWORK_ERROR`, `INVALID_VENDOR`. Màn login dùng các trạng thái này để hiển thị thông báo đúng nguyên nhân hơn.
+- Khi debug login trên Android, dùng `adb logcat` lọc các từ khóa `FirebaseAuth`, `GoogleSignIn`, `IOT login`, `loginWithGmail`, `ApiException`. Nếu Firebase thành công nhưng server trả non-200, cần kiểm tra tài khoản đã được cấp quyền ở backend IOT.
+- Nếu log báo `HandshakeException: Handshake error in client (OS Error: WRONG_VERSION_NUMBER)`, app đang gọi HTTPS vào cổng chỉ phục vụ HTTP. Cổng `2025` hiện là trang upgrade/web, không phải API login. Cấu hình đúng cho API hiện tại là `IOT_REQUEST_URL = 'https://117.2.155.59:2024/'`; nếu gọi `http://117.2.155.59:2024/`, server trả `This combination of host and port requires TLS`.
+
 ### 7.2. Trang Chủ
 
 Màn hình: `lib/app/view/main/home_page.dart`.
@@ -576,13 +585,20 @@ File quan trọng:
 Cấu hình hiện tại:
 
 - `applicationId`: `org.vbspdng.msp`.
-- `compileSdkVersion`: 29.
-- `minSdkVersion`: 16.
-- `targetSdkVersion`: 29.
-- Android Gradle Plugin: `3.5.3`.
-- Google services plugin: `4.3.3`.
+- `compileSdkVersion`: lấy từ Flutter (`flutter.compileSdkVersion`), hiện Gradle fallback cho thư viện Android là `36`.
+- `minSdkVersion`: lấy từ Flutter (`flutter.minSdkVersion`).
+- `targetSdkVersion`: lấy từ Flutter (`flutter.targetSdkVersion`).
+- Android Gradle Plugin: `8.11.1`.
+- Kotlin Gradle Plugin: `2.2.20`.
+- Google services plugin: `4.4.4`.
 - Firebase Messaging native dependency: `com.google.firebase:firebase-messaging:20.1.0`.
 - App label: `IOT`.
+
+Ghi nhớ lỗi Gradle `compileSdkVersion is not specified`:
+
+- Không sửa trực tiếp package trong `C:\Users\...\Pub\Cache` vì `flutter pub get`/cache repair có thể ghi đè mất.
+- Dependency `android_id` đang dùng bản local tại `third_party/android_id` để vá `android/build.gradle`: khi chạy trong Flutter sẽ lấy `flutter.compileSdkVersion`, khi IDE/Gradle mở plugin standalone sẽ fallback `compileSdk = 36` và `minSdk = 23`.
+- Nếu nâng cấp hoặc đổi lại `android_id` từ pub.dev, phải kiểm tra lại lỗi root project `android_id` trước khi commit.
 
 Permission:
 
@@ -804,4 +820,3 @@ Khi sửa backend/API:
 - Trả `iot-upgrade` khi cần ép cập nhật.
 - Giữ field JSON đúng với model hiện có.
 - Với FCM, giữ payload field đúng cho `IM` và `AR`.
-

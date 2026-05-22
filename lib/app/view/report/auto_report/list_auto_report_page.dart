@@ -100,20 +100,22 @@ class _IotListAutoReportPageState extends State<IotListAutoReportPage>
   }
 
   Widget _listMessageItem(List<IotAutoReport> data) {
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
     if (data.isEmpty)
       return Center(
         child: Text(
           'IOT',
           style: TextStyle(
             color: IOT_BG_COLOR,
-            fontSize: SP_LARGER_COMMON_FONT_SIZE.sp,
+            fontSize: isLandscape ? 22 : SP_LARGER_COMMON_FONT_SIZE.sp,
             fontWeight: FontWeight.bold,
           ),
         ),
       );
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
+      padding: EdgeInsets.fromLTRB(12, isLandscape ? 8 : 12, 12, 20),
       itemCount: data.length + 1,
       controller: _scrollController,
       itemBuilder: (context, index) {
@@ -163,7 +165,7 @@ class _IotListAutoReportPageState extends State<IotListAutoReportPage>
         _isLoading = false;
         final status = data[index].status ?? 0;
         return Padding(
-          padding: const EdgeInsets.only(bottom: 10),
+          padding: EdgeInsets.only(bottom: isLandscape ? 8 : 10),
           child: Material(
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
@@ -172,7 +174,7 @@ class _IotListAutoReportPageState extends State<IotListAutoReportPage>
             child: InkWell(
               borderRadius: BorderRadius.circular(8),
               child: Padding(
-                padding: const EdgeInsets.all(14),
+                padding: EdgeInsets.all(isLandscape ? 10 : 14),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,7 +195,7 @@ class _IotListAutoReportPageState extends State<IotListAutoReportPage>
                         _showTime(data[index].time),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: isLandscape ? 4 : 8),
                     Padding(
                       child: _showTitle(data[index].title, status),
                       padding: const EdgeInsets.only(left: 16),
@@ -217,33 +219,43 @@ class _IotListAutoReportPageState extends State<IotListAutoReportPage>
   }
 
   Widget _showCreatorName(String creatorName) {
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
     return Text(
       creatorName,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
       style: TextStyle(
         color: Colors.black38,
-        fontSize: 32.sp,
+        fontSize: isLandscape ? 15 : 32.sp,
         fontWeight: FontWeight.normal,
       ),
     );
   }
 
   Widget _showTime(int time) {
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
     return Text(
       IotUtility().parseTimeAutoReport(time),
       style: TextStyle(
         color: Colors.black54,
-        fontSize: 32.sp,
+        fontSize: isLandscape ? 15 : 32.sp,
         fontWeight: FontWeight.normal,
       ),
     );
   }
 
   Widget _showTitle(String title, int status) {
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
     return Text(
       title,
+      maxLines: isLandscape ? 2 : null,
+      overflow: isLandscape ? TextOverflow.ellipsis : null,
       style: TextStyle(
         color: status == 0 ? Colors.black87 : Colors.black54,
-        fontSize: SP_AUTO_REPORT_FONT_SIZE.sp,
+        fontSize: isLandscape ? 18 : SP_AUTO_REPORT_FONT_SIZE.sp,
         fontWeight: status == 0 ? FontWeight.bold : FontWeight.normal,
       ),
     );

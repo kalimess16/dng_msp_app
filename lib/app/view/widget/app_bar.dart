@@ -6,12 +6,16 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class IotAppBar {
   AppBar build(BuildContext context, bool backHomePage, String title) {
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
     return AppBar(
       elevation: 0,
       scrolledUnderElevation: 0,
       backgroundColor: IOT_BG_COLOR,
       foregroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
+      toolbarHeight: isLandscape ? 46 : null,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios_new_rounded),
         color: Colors.white,
@@ -28,7 +32,7 @@ class IotAppBar {
           style: TextStyle(
             color: IOT_FG_COLOR,
             fontWeight: FontWeight.bold,
-            fontSize: SP_COMMON_FONT_SIZE.sp,
+            fontSize: isLandscape ? 18 : SP_COMMON_FONT_SIZE.sp,
           ),
         ),
       ),
@@ -48,11 +52,7 @@ class IotPopScope extends StatelessWidget {
   final Widget child;
   final Future<bool> Function()? onWillPop;
 
-  const IotPopScope({
-    super.key,
-    required this.child,
-    this.onWillPop,
-  });
+  const IotPopScope({super.key, required this.child, this.onWillPop});
 
   @override
   Widget build(BuildContext context) {

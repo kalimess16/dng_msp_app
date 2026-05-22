@@ -13,7 +13,7 @@ import 'package:dngmsp/app/resource/routes.dart';
 import 'package:dngmsp/app/resource/var/app_static_variable.dart';
 import 'package:dngmsp/app/utility/utility.dart';
 import 'package:dngmsp/app/view/im/compose/list_postions_page.dart';
-import 'package:dngmsp/app/view/im/forward/forward_message_page.dart';
+import 'package:dngmsp/app/view/im/reply/forward/forward_message_page.dart';
 import 'package:dngmsp/app/view/im/reply/emotion_user_page.dart';
 import 'package:dngmsp/app/view/im/reply/reply_download_file_widget.dart';
 import 'package:dngmsp/app/view/widget/bottom_navigator_bar.dart';
@@ -58,6 +58,15 @@ class _IotReplyInternalMessagePageState
   late final IotEmotionStream _emotionStream;
   late final String _username;
   final Map<String, List<IotDownloadFile>> _messageFilesCache = {};
+
+  bool get _isLandscape =>
+      MediaQuery.of(context).orientation == Orientation.landscape;
+
+  double get _commonFontSize => _isLandscape ? 16 : SP_COMMON_FONT_SIZE.sp;
+
+  double get _smallFontSize => _isLandscape ? 14 : SP_SMALL_COMMON_FONT_SIZE.sp;
+
+  double get _messageMargin => _isLandscape ? 12 : 30;
 
   @override
   void initState() {
@@ -138,39 +147,22 @@ class _IotReplyInternalMessagePageState
                 Expanded(
                   child: Container(
                     alignment: FractionalOffset.bottomCenter,
-                    padding: const EdgeInsets.only(bottom: 20),
+                    padding: EdgeInsets.only(bottom: _isLandscape ? 8 : 20),
                     child: SingleChildScrollView(
                       reverse: true,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Flexible(
-                            child: _buildOriginalMessages(
-                              snapshot.data as List<IotInternalMessage>,
-                            ),
-                            fit: FlexFit.loose,
+                          _buildOriginalMessages(
+                            snapshot.data as List<IotInternalMessage>,
                           ),
-                          Flexible(
-                            child: _buildIncomingMessages(),
-                            fit: FlexFit.loose,
-                          ),
+                          _buildIncomingMessages(),
                         ],
                       ),
                     ),
                   ),
                 ),
-                Column(
-                  children: [
-                    _composeMessageContent(),
-                    Padding(
-                      child: Align(
-                        child: _composeMessageButton(),
-                        alignment: Alignment.centerRight,
-                      ),
-                      padding: const EdgeInsets.only(right: 20),
-                    ),
-                  ],
-                ),
+                _composeMessageArea(),
               ],
             ),
           );
@@ -206,7 +198,7 @@ class _IotReplyInternalMessagePageState
                       border: Border.all(color: Colors.black12),
                       borderRadius: BorderRadius.all(Radius.circular(12.0)),
                     ),
-                    margin: const EdgeInsets.all(30.0),
+                    margin: EdgeInsets.all(_messageMargin),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -250,7 +242,7 @@ class _IotReplyInternalMessagePageState
             border: Border.all(color: Colors.black12),
             borderRadius: BorderRadius.all(Radius.circular(12.0)),
           ),
-          margin: const EdgeInsets.all(30.0),
+          margin: EdgeInsets.all(_messageMargin),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -281,23 +273,20 @@ class _IotReplyInternalMessagePageState
           topRight: Radius.circular(11.0),
         ),
       ),
-      padding: const EdgeInsets.all(10),
+      padding: EdgeInsets.all(_isLandscape ? 8 : 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Flexible(
             child: Text(
               creatorName,
-              style: TextStyle(fontSize: SP_SMALL_COMMON_FONT_SIZE.sp),
+              style: TextStyle(fontSize: _smallFontSize),
             ),
             fit: FlexFit.loose,
           ),
           Text(
             IotUtility().parseTimeMessage(time),
-            style: TextStyle(
-              color: Colors.black87,
-              fontSize: SP_SMALL_COMMON_FONT_SIZE.sp,
-            ),
+            style: TextStyle(color: Colors.black87, fontSize: _smallFontSize),
           ),
         ],
       ),
@@ -307,7 +296,7 @@ class _IotReplyInternalMessagePageState
   Widget _messageTitle(IotInternalMessage message) {
     return Container(
       constraints: const BoxConstraints(minWidth: double.infinity),
-      padding: const EdgeInsets.all(10),
+      padding: EdgeInsets.all(_isLandscape ? 8 : 10),
       child: RichText(
         text: TextSpan(
           children: IotReplyInternalMessageStream().extractIotMessageTitle(
@@ -527,10 +516,7 @@ class _IotReplyInternalMessagePageState
       child: Column(
         children: [
           const Icon(Icons.forward),
-          Text(
-            'Chuyển tiếp',
-            style: TextStyle(fontSize: SP_SMALL_COMMON_FONT_SIZE.sp),
-          ),
+          Text('Chuyển tiếp', style: TextStyle(fontSize: _smallFontSize)),
         ],
       ),
     );
@@ -570,17 +556,53 @@ class _IotReplyInternalMessagePageState
     );
   }
 
+  Widget _composeMessageArea() {
+    if (_isLandscape) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(child: _composeMessageContent()),
+            const SizedBox(width: 8),
+            _sendButton(),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        _composeMessageContent(),
+        Padding(
+          child: Align(
+            child: _composeMessageButton(),
+            alignment: Alignment.centerRight,
+          ),
+          padding: const EdgeInsets.only(right: 20),
+        ),
+      ],
+    );
+  }
+
   Widget _sendButton() {
     return TextButton(
+      style: TextButton.styleFrom(
+        padding: EdgeInsets.symmetric(
+          horizontal: _isLandscape ? 8 : 16,
+          vertical: _isLandscape ? 4 : 8,
+        ),
+        minimumSize: Size(0, _isLandscape ? 40 : 48),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          const Icon(Icons.send, size: 32, color: IOT_BG_COLOR),
+          Icon(Icons.send, size: _isLandscape ? 24 : 32, color: IOT_BG_COLOR),
           Text(
             'Gửi',
             style: TextStyle(
               color: IOT_BG_COLOR,
-              fontSize: SP_COMMON_FONT_SIZE.sp,
+              fontSize: _isLandscape ? 18 : SP_COMMON_FONT_SIZE.sp,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -661,10 +683,7 @@ class _IotReplyInternalMessagePageState
       child: Column(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Flexible(child: _buildEmojis(), fit: FlexFit.loose),
-          _buildMessage(),
-        ],
+        children: [_buildEmojis(), _buildMessage()],
       ),
       alignment: Alignment.bottomCenter,
     );
@@ -674,13 +693,17 @@ class _IotReplyInternalMessagePageState
     return TextFormField(
       controller: _controller,
       minLines: 1,
-      maxLines: 5,
-      style: TextStyle(color: Colors.black, fontSize: SP_COMMON_FONT_SIZE.sp),
+      maxLines: _isLandscape ? 2 : 5,
+      style: TextStyle(color: Colors.black, fontSize: _commonFontSize),
       keyboardType: TextInputType.text,
       decoration: InputDecoration(
         hintText: 'Nội dung thông tin',
-        hintStyle: const TextStyle(color: Colors.black26),
+        hintStyle: TextStyle(color: Colors.black26, fontSize: _commonFontSize),
         suffixIcon: _buildEmojiButton(),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: _isLandscape ? 8 : 12,
+        ),
         isDense: true,
         border: const OutlineInputBorder(
           borderSide: BorderSide(color: IOT_BG_COLOR),
@@ -692,9 +715,9 @@ class _IotReplyInternalMessagePageState
 
   Widget _buildEmojiButton() {
     return IconButton(
-      icon: const Icon(
+      icon: Icon(
         Icons.emoji_emotions_outlined,
-        size: 36,
+        size: _isLandscape ? 24 : 36,
         color: Colors.black54,
       ),
       onPressed: () async {
@@ -725,7 +748,7 @@ class _IotReplyInternalMessagePageState
         final bool _offstage = snapshot.data as bool;
         if (!_offstage) return const SizedBox();
         return Container(
-          height: 120,
+          height: _isLandscape ? 74 : 120,
           decoration: BoxDecoration(
             border: Border.all(color: IOT_FG_COLOR, width: 1.5),
           ),
@@ -733,7 +756,7 @@ class _IotReplyInternalMessagePageState
             padding: const EdgeInsets.all(5),
             crossAxisSpacing: 5,
             mainAxisSpacing: 5,
-            crossAxisCount: 9,
+            crossAxisCount: _isLandscape ? 14 : 9,
             shrinkWrap: true,
             children: _emojiWidgets,
           ),

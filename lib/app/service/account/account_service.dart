@@ -4,6 +4,7 @@ import 'package:dngmsp/app/model/exception.dart';
 import 'package:dngmsp/app/model/shared_preferences.dart';
 import 'package:dngmsp/app/resource/string/app_strings.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class IotAccountService {
@@ -13,11 +14,14 @@ class IotAccountService {
     String uuid,
     String os,
   ) async {
-    late String fcmToken;
-    await FirebaseMessaging.instance.getToken().then((String? token) {
-      assert(token != null);
-      fcmToken = token!;
-    });
+    String fcmToken = '';
+    try {
+      fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
+    } catch (e, s) {
+      debugPrint('IOT login: cannot get FCM token: $e');
+      debugPrintStack(stackTrace: s);
+    }
+
     Codec<String, String> codec = utf8.fuse(base64);
     http.Response r = await http.post(
       Uri.parse(IOT_REQUEST_URL + 'loginWithGmail'),
@@ -33,7 +37,8 @@ class IotAccountService {
         'os': codec.encode(os),
       }),
     );
-    print('HỂ ${r.body}');
+    final responseInfo = r.statusCode == 200 ? 'success' : r.body;
+    debugPrint('IOT login response ${r.statusCode}: $responseInfo');
     return r;
   }
 

@@ -174,6 +174,9 @@ class IotReplyInternalMessageStream extends ChangeNotifier {
     void Function(int)? onEofficeTitleTap,
   }) {
     List<TextSpan> textSpan = [];
+    final fontSize = MediaQuery.of(context).orientation == Orientation.landscape
+        ? 16.0
+        : SP_COMMON_FONT_SIZE.sp;
     final urlRegExp = RegExp(
       r"((https?:www\.)|(https?:\/\/)|(www\.))[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}(\/[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)?",
     );
@@ -186,10 +189,7 @@ class IotReplyInternalMessageStream extends ChangeNotifier {
       textSpan.add(
         TextSpan(
           text: linkString,
-          style: TextStyle(
-            color: Colors.blue,
-            fontSize: SP_COMMON_FONT_SIZE.sp,
-          ),
+          style: TextStyle(color: Colors.blue, fontSize: fontSize),
           recognizer: TapGestureRecognizer()
             ..onTap = () async {
               final url = Uri.parse(
@@ -216,17 +216,15 @@ class IotReplyInternalMessageStream extends ChangeNotifier {
         (searchWords.isEmpty
             ? TextSpan(
                 text: normalText,
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: SP_COMMON_FONT_SIZE.sp,
-                ),
+                style: TextStyle(color: Colors.black, fontSize: fontSize),
               )
             : TextSpan(
-                children: highlightOccurrences(normalText, searchWords),
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: SP_COMMON_FONT_SIZE.sp,
+                children: highlightOccurrences(
+                  normalText,
+                  searchWords,
+                  fontSize: fontSize,
                 ),
+                style: TextStyle(color: Colors.black, fontSize: fontSize),
               )),
       );
       return normalText;
@@ -244,7 +242,7 @@ class IotReplyInternalMessageStream extends ChangeNotifier {
             text: line,
             style: TextStyle(
               color: const Color.fromARGB(248, 0, 0, 0),
-              fontSize: SP_COMMON_FONT_SIZE.sp,
+              fontSize: fontSize,
               fontWeight: FontWeight.w400,
               // decoration: TextDecoration.underline,
             ),
@@ -263,17 +261,18 @@ class IotReplyInternalMessageStream extends ChangeNotifier {
         textSpan.add(
           TextSpan(
             text: '\n',
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: SP_COMMON_FONT_SIZE.sp,
-            ),
+            style: TextStyle(color: Colors.black, fontSize: fontSize),
           ),
         );
     }
     return textSpan;
   }
 
-  List<TextSpan> highlightOccurrences(String source, String query) {
+  List<TextSpan> highlightOccurrences(
+    String source,
+    String query, {
+    double? fontSize,
+  }) {
     final matches = query
         .toLowerCase()
         .allMatches(source.toLowerCase())
@@ -294,7 +293,7 @@ class IotReplyInternalMessageStream extends ChangeNotifier {
         TextSpan(
           text: source.substring(match.start, match.end),
           style: TextStyle(
-            fontSize: SP_COMMON_FONT_SIZE.sp,
+            fontSize: fontSize ?? SP_COMMON_FONT_SIZE.sp,
             backgroundColor: Colors.yellowAccent,
           ),
         ),
