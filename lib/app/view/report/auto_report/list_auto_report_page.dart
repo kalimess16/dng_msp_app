@@ -62,7 +62,7 @@ class _IotListAutoReportPageState extends State<IotListAutoReportPage>
   @override
   Widget build(BuildContext context) {
     IotBottomNavigatorBar.selectedIotBottomNavigatorBar = 1;
-    return WillPopScope(
+    return IotPopScope(
       child: Scaffold(
         appBar: IotAppBar().build(context, true, 'SỐ LIỆU ĐỊNH KỲ'),
         body: _bodyListMessage(),

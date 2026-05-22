@@ -109,7 +109,7 @@ class _IotReplyDownloadFileWidgetState
     String _shortFilename = '$_fullFilename'.length < 20
         ? '$_fullFilename'
         : '$_fullFilename'.substring(0, 20) + '...';
-    Color _borderColor = Colors.green.withOpacity(0.2);
+    Color _borderColor = Colors.green.withValues(alpha: 0.2);
     if (widget.searchWords != null &&
         widget.searchWords.toString().isNotEmpty) {
       if (_fullFilename
@@ -128,7 +128,7 @@ class _IotReplyDownloadFileWidgetState
                 margin: const EdgeInsets.all(10),
                 constraints: BoxConstraints(maxHeight: 0.065.sh),
                 decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.02),
+                    color: Colors.black.withValues(alpha: 0.02),
                     border: Border.all(color: Colors.amber),
                     borderRadius: const BorderRadius.all(Radius.circular(10))),
               );
@@ -138,7 +138,7 @@ class _IotReplyDownloadFileWidgetState
           margin: const EdgeInsets.all(10),
           constraints: BoxConstraints(maxHeight: 0.065.sh),
           decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.02),
+              color: Colors.black.withValues(alpha: 0.02),
               border: Border.all(color: _borderColor),
               borderRadius: const BorderRadius.all(Radius.circular(10))),
           child: Row(children: [
@@ -182,7 +182,7 @@ class _IotReplyDownloadFileWidgetState
             margin:
                 const EdgeInsets.only(top: 5, left: 10, right: 10, bottom: 5),
             decoration: BoxDecoration(
-                border: Border.all(color: Colors.green.withOpacity(0.4)),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
                 borderRadius: const BorderRadius.all(Radius.circular(3))),
             constraints: BoxConstraints(maxHeight: 0.2.sh),
             width: double.infinity,

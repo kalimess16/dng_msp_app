@@ -46,7 +46,7 @@ class _SearchEofficePageState extends State<SearchEofficePage> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
+    return IotPopScope(
       child: Scaffold(
         appBar: IotAppBar().build(context, false, 'Tìm văn bản'),
         body: FutureBuilder(

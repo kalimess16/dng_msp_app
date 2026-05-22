@@ -12,7 +12,7 @@ class IotAccountLogPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     IotBottomNavigatorBar.selectedIotBottomNavigatorBar = 2;
-    return WillPopScope(
+    return IotPopScope(
       child: Scaffold(
         appBar: IotAppBar().build(context, true, 'TÀI KHOẢN'),
         body: FutureBuilder(

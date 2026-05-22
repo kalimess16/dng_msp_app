@@ -8,6 +8,7 @@ import 'package:dngmsp/app/resource/routes.dart';
 import 'package:dngmsp/app/resource/string/app_strings.dart';
 import 'package:dngmsp/app/resource/var/app_static_variable.dart';
 import 'package:dngmsp/app/utility/utility.dart';
+import 'package:dngmsp/app/view/widget/app_bar.dart';
 import 'package:dngmsp/app/view/widget/bottom_navigator_bar.dart';
 import 'package:dngmsp/app/view/widget/exception_widget.dart';
 import 'package:dngmsp/app/viewmodel/report/auto_report/navigator_auto_report_page.dart';
@@ -59,7 +60,7 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
     Wakelock.enable();
     IotUtility().checkInternetConnection(context);
     IotBottomNavigatorBar.selectedIotBottomNavigatorBar = 0;
-    return WillPopScope(
+    return IotPopScope(
       child: Scaffold(
         backgroundColor: IOT_BG_COLOR,
         body: FutureBuilder(

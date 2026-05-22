@@ -58,7 +58,7 @@ class _MarkEofficePageState extends State<MarkEofficePage> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
+    return IotPopScope(
       child: Scaffold(
         appBar: IotAppBar().build(context, false, 'PHÂN LOẠI VĂN BẢN'),
         body: FutureBuilder(

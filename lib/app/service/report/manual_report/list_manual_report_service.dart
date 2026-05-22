@@ -19,20 +19,25 @@ class IotListManualReportService {
       Codec<String, String> codec = utf8.fuse(base64);
       late String wsToken;
       await IotSharedPreferences().get().then((prefs) => wsToken = prefs[0]);
-      final response = await http.Client().post(Uri.parse(IOT_REQUEST_URL + 'listCompactReports?type=$type'),
-          headers: {
-            "Authorization": "Bearer " + wsToken,
-            "Vendor": codec.encode(IOT_APP_VERSION)
-          }).timeout(Duration(seconds: 25));
+      final response = await http.Client()
+          .post(
+            Uri.parse(IOT_REQUEST_URL + 'listCompactReports?type=$type'),
+            headers: {
+              "Authorization": "Bearer " + wsToken,
+              "Vendor": codec.encode(IOT_APP_VERSION),
+            },
+          )
+          .timeout(Duration(seconds: 25));
       if (response.statusCode != 200)
-        throw IotException(error: response.headers['iot-upgrade'] ?? 'N', code: response.statusCode);
+        throw IotException(
+          error: response.headers['iot-upgrade'] ?? 'N',
+          code: response.statusCode,
+        );
       return compute(parseIotListReports, response.body);
     } on IotException catch (e) {
       throw e;
     } catch (e) {
-      if (e.toString().contains('errno = 101')) throw IotException(code: 101);
-      if (e.toString().startsWith('TimeoutException')) throw IotException(code: 408);
-      throw IotException(code: 0);
+      throw IotException.fromError(e);
     }
   }
 }

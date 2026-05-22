@@ -54,7 +54,7 @@ class _IotComposeInternalMessagePageState
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
+    return IotPopScope(
         child: Scaffold(
             appBar: IotAppBar().build(context, false, 'SOẠN THÔNG TIN'),
             body: _buildBody()),
@@ -122,7 +122,7 @@ class _IotComposeInternalMessagePageState
         context: context,
         barrierDismissible: false,
         builder: (context) {
-          return WillPopScope(
+          return IotPopScope(
               child: SimpleDialog(
                   contentPadding: EdgeInsets.zero,
                   titlePadding: EdgeInsets.zero,
@@ -168,7 +168,7 @@ class _IotComposeInternalMessagePageState
         context: context,
         barrierDismissible: false,
         builder: (context) {
-          return WillPopScope(
+          return IotPopScope(
               child: SimpleDialog(
                   contentPadding: EdgeInsets.zero,
                   titlePadding: EdgeInsets.zero,

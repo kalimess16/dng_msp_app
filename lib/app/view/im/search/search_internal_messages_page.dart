@@ -44,7 +44,7 @@ class _IotSearchInternalMessagesPageState
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
+    return IotPopScope(
       child: Scaffold(
         appBar: IotAppBar().build(context, false, 'Tìm Thông tin'),
         body: SingleChildScrollView(child: _bodyPage()),

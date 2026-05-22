@@ -11,7 +11,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 class SearchDocumentPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
+    return IotPopScope(
       child: Scaffold(
         appBar: IotAppBar().build(context, false, 'Tìm văn bản'),
         body: Column(

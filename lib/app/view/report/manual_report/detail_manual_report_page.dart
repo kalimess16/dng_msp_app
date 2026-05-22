@@ -21,7 +21,7 @@ class IotDetailManualReportPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
+    return IotPopScope(
         child: Scaffold(
           appBar: IotAppBar().build(context, false, this.title?? ''),
           body: _buildReportsBodyPage(context),

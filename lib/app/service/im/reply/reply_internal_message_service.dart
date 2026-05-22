@@ -14,7 +14,12 @@ import 'package:http_parser/http_parser.dart';
 
 List<IotInternalMessage> parseIotReplyInternalMessage(String responseBody) {
   final parsed = jsonDecode(responseBody) as List;
-  return parsed.map((json) => IotInternalMessage.fromJson(json)).toList();
+  return parsed
+      .whereType<Map>()
+      .map(
+        (json) => IotInternalMessage.fromJson(Map<String, dynamic>.from(json)),
+      )
+      .toList();
 }
 
 List<IotDownloadFile> parseIotDownloadFiles(String responseBody) {
@@ -27,9 +32,16 @@ IotDownloadFile parseIotDownloadDataFile(String responseBody) {
   return parsed.map((json) => IotDownloadFile.fromJson(json)).first;
 }
 
-List<IotInternalMessage> parseIncomingReplyInternalMessage(String responseBody) {
+List<IotInternalMessage> parseIncomingReplyInternalMessage(
+  String responseBody,
+) {
   final parsed = jsonDecode(responseBody) as List;
-  return parsed.map((json) => IotInternalMessage.fromJson(json)).toList();
+  return parsed
+      .whereType<Map>()
+      .map(
+        (json) => IotInternalMessage.fromJson(Map<String, dynamic>.from(json)),
+      )
+      .toList();
 }
 
 List<IotEmotionUser> parseEmotionUser(String responseBody) {
@@ -39,95 +51,130 @@ List<IotEmotionUser> parseEmotionUser(String responseBody) {
 
 class IotReplyInternalMessagesService {
   Future<List<IotInternalMessage>> fetchInternalMessages(
-      int originalId, String originalCreator) async {
+    int originalId,
+    String originalCreator,
+  ) async {
     try {
       late String wsToken;
       Codec<String, String> codec = utf8.fuse(base64);
       await IotSharedPreferences().get().then((prefs) => wsToken = prefs[0]);
       final response = await http.Client()
-          .post(Uri.parse(IOT_REQUEST_URL + 'listReplyInternalMessages'),
-              headers: {
-                "Authorization": "Bearer " + wsToken,
-                "Vendor": codec.encode(IOT_APP_VERSION)
-              },
-              body: jsonEncode({'originalId': '$originalId', 'originalCreator': originalCreator}))
+          .post(
+            Uri.parse(IOT_REQUEST_URL + 'listReplyInternalMessages'),
+            headers: {
+              "Authorization": "Bearer " + wsToken,
+              "Vendor": codec.encode(IOT_APP_VERSION),
+            },
+            body: jsonEncode({
+              'originalId': '$originalId',
+              'originalCreator': originalCreator,
+            }),
+          )
           .timeout(Duration(seconds: 45));
       if (response.statusCode != 200)
-        throw IotException(code: response.statusCode, error: response.headers['iot-upgrade'] ?? 'N');
+        throw IotException(
+          code: response.statusCode,
+          error: response.headers['iot-upgrade'] ?? 'N',
+        );
       if (response.body == 'null') return [];
       return compute(parseIotReplyInternalMessage, response.body);
     } on IotException catch (e) {
       throw e;
     } catch (e) {
-      if (e.toString().contains('errno = 101')) throw IotException(code: 101);
-      if (e.toString().startsWith('TimeoutException')) throw IotException(code: 408);
-      throw IotException(code: 0);
+      throw IotException.fromError(e);
     }
   }
 
   Future<List<IotDownloadFile>> downloadFiles(
-      int messageId, int originalId, String originalCreator) async {
+    int messageId,
+    int originalId,
+    String originalCreator,
+  ) async {
     try {
       late String wsToken;
       Codec<String, String> codec = utf8.fuse(base64);
       await IotSharedPreferences().get().then((prefs) => wsToken = prefs[0]);
       final response = await http.Client().post(
-          Uri.parse(IOT_REQUEST_URL + 'listReplyDownloadFiles'),
-          headers: {"Authorization": "Bearer " + wsToken, "Vendor": codec.encode(IOT_APP_VERSION)},
-          body: jsonEncode({
-            'messageId': '$messageId',
-            'originalId': '$originalId',
-            'originalCreator': originalCreator
-          }));
+        Uri.parse(IOT_REQUEST_URL + 'listReplyDownloadFiles'),
+        headers: {
+          "Authorization": "Bearer " + wsToken,
+          "Vendor": codec.encode(IOT_APP_VERSION),
+        },
+        body: jsonEncode({
+          'messageId': '$messageId',
+          'originalId': '$originalId',
+          'originalCreator': originalCreator,
+        }),
+      );
       if (response.statusCode != 200)
-        throw IotException(code: response.statusCode, error: response.headers['iot-upgrade'] ?? 'N');
+        throw IotException(
+          code: response.statusCode,
+          error: response.headers['iot-upgrade'] ?? 'N',
+        );
       if (response.body == 'null') return [];
       return compute(parseIotDownloadFiles, response.body);
     } on IotException catch (e) {
       throw e;
     } catch (e) {
-      if (e.toString().contains('errno = 101')) throw IotException(code: 101);
-
-      throw IotException(code: 0);
+      throw IotException.fromError(e);
     }
   }
 
   Future<IotDownloadFile> downloadDataFiles(
-      String creator, int messageId, String fileName, String fileType) async {
+    String creator,
+    int messageId,
+    String fileName,
+    String fileType,
+  ) async {
     try {
       late String wsToken;
       Codec<String, String> codec = utf8.fuse(base64);
       await IotSharedPreferences().get().then((prefs) => wsToken = prefs[0]);
       final response = await http.Client().post(
-          Uri.parse(IOT_REQUEST_URL + 'listReplyDownloadDataFile'),
-          headers: {"Authorization": "Bearer " + wsToken, "Vendor": codec.encode(IOT_APP_VERSION)},
-          body: jsonEncode({
-            'creator': creator,
-            'messageId': '$messageId',
-            'fileName': fileName,
-            'fileType': fileType
-          }));
+        Uri.parse(IOT_REQUEST_URL + 'listReplyDownloadDataFile'),
+        headers: {
+          "Authorization": "Bearer " + wsToken,
+          "Vendor": codec.encode(IOT_APP_VERSION),
+        },
+        body: jsonEncode({
+          'creator': creator,
+          'messageId': '$messageId',
+          'fileName': fileName,
+          'fileType': fileType,
+        }),
+      );
       if (response.statusCode != 200)
-        throw IotException(code: response.statusCode, error: response.headers['iot-upgrade'] ?? 'N');
+        throw IotException(
+          code: response.statusCode,
+          error: response.headers['iot-upgrade'] ?? 'N',
+        );
       return compute(parseIotDownloadDataFile, response.body);
     } on IotException catch (e) {
       throw e;
     } catch (e) {
-      if (e.toString().contains('errno = 101')) throw IotException(code: 101);
-      throw IotException(code: 0);
+      throw IotException.fromError(e);
     }
   }
 
-  Future<List<IotInternalMessage>> uploadReplyMessage(int originalId,
-      String originalCreator, int messageId, String content, List<File> files) async {
+  Future<List<IotInternalMessage>> uploadReplyMessage(
+    int originalId,
+    String originalCreator,
+    int messageId,
+    String content,
+    List<File> files,
+  ) async {
     try {
       late String wsToken;
       Codec<String, String> codec = utf8.fuse(base64);
       await IotSharedPreferences().get().then((prefs) => wsToken = prefs[0]);
-      final request =
-          http.MultipartRequest('POST', Uri.parse(IOT_REQUEST_URL + 'uploadReplyDocumentFiles'));
-      request.headers
-          .addAll({"Authorization": "Bearer " + wsToken, "Vendor": codec.encode(IOT_APP_VERSION)});
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse(IOT_REQUEST_URL + 'uploadReplyDocumentFiles'),
+      );
+      request.headers.addAll({
+        "Authorization": "Bearer " + wsToken,
+        "Vendor": codec.encode(IOT_APP_VERSION),
+      });
       request.fields.addAll({
         'originalId': '$originalId',
         'originalCreator': originalCreator,
@@ -139,116 +186,140 @@ class IotReplyInternalMessagesService {
         if (_mimeType.isNotEmpty) {
           var _types = _mimeType.split('/');
           request.files.add(
-            await http.MultipartFile.fromPath('files', element.path,
-                contentType: MediaType(_types[0], _types[1])),
+            await http.MultipartFile.fromPath(
+              'files',
+              element.path,
+              contentType: MediaType(_types[0], _types[1]),
+            ),
           );
-        }
-        else
-          request.files.add(await http.MultipartFile.fromPath('files', element.path));
+        } else
+          request.files.add(
+            await http.MultipartFile.fromPath('files', element.path),
+          );
       });
       var response = await http.Response.fromStream(await request.send());
       if (response.statusCode != 200)
-        throw IotException(error: response.headers['iot-upgrade'] ?? 'N', code: response.statusCode);
+        throw IotException(
+          error: response.headers['iot-upgrade'] ?? 'N',
+          code: response.statusCode,
+        );
       return compute(parseIncomingReplyInternalMessage, response.body);
     } on IotException catch (e, s) {
       print(s);
       throw e;
     } catch (e, s) {
       print(s);
-      if (e.toString().contains('errno = 101')) throw IotException(code: 101);
-      throw IotException(code: 0);
+      throw IotException.fromError(e);
     }
   }
 
   Future<List<IotInternalMessage>> fetchIncomingReplyInternalMessage(
-      int originalId, String originalCreator, int messageId) async {
+    int originalId,
+    String originalCreator,
+    int messageId,
+  ) async {
     try {
       late String wsToken;
       Codec<String, String> codec = utf8.fuse(base64);
       await IotSharedPreferences().get().then((prefs) => wsToken = prefs[0]);
       final response = await http.Client()
-          .post(Uri.parse(IOT_REQUEST_URL + 'incomingReplyInternalMessages'),
-              headers: {
-                "Authorization": "Bearer " + wsToken,
-                "Vendor": codec.encode(IOT_APP_VERSION)
-              },
-              body: jsonEncode({
-                'originalId': '$originalId',
-                'originalCreator': originalCreator,
-                'messageId': '$messageId'
-              }))
+          .post(
+            Uri.parse(IOT_REQUEST_URL + 'incomingReplyInternalMessages'),
+            headers: {
+              "Authorization": "Bearer " + wsToken,
+              "Vendor": codec.encode(IOT_APP_VERSION),
+            },
+            body: jsonEncode({
+              'originalId': '$originalId',
+              'originalCreator': originalCreator,
+              'messageId': '$messageId',
+            }),
+          )
           .timeout(Duration(seconds: 35));
       if (response.statusCode != 200)
-        throw IotException(code: response.statusCode, error: response.headers['iot-upgrade'] ?? 'N');
+        throw IotException(
+          code: response.statusCode,
+          error: response.headers['iot-upgrade'] ?? 'N',
+        );
       if (response.body == 'null') return [];
       return compute(parseIncomingReplyInternalMessage, response.body);
     } on IotException catch (e) {
       throw e;
     } catch (e) {
-      if (e.toString().contains('errno = 101')) throw IotException(code: 101);
-      if (e.toString().startsWith('TimeoutException')) throw IotException(code: 408);
-      throw IotException(code: 0);
+      throw IotException.fromError(e);
     }
   }
 
   Future<bool> updateEmotionNumInternalMessage(
-      int originalId, String originalCreator, int messageId) async {
+    int originalId,
+    String originalCreator,
+    int messageId,
+  ) async {
     try {
       late String wsToken;
       Codec<String, String> codec = utf8.fuse(base64);
       await IotSharedPreferences().get().then((prefs) => wsToken = prefs[0]);
       final response = await http.Client()
-          .post(Uri.parse(IOT_REQUEST_URL + 'emotionInternalMessage'),
-              headers: {
-                "Authorization": "Bearer " + wsToken,
-                "Vendor": codec.encode(IOT_APP_VERSION)
-              },
-              body: jsonEncode({
-                'originalId': '$originalId',
-                'originalCreator': originalCreator,
-                'messageId': '$messageId',
-              }))
+          .post(
+            Uri.parse(IOT_REQUEST_URL + 'emotionInternalMessage'),
+            headers: {
+              "Authorization": "Bearer " + wsToken,
+              "Vendor": codec.encode(IOT_APP_VERSION),
+            },
+            body: jsonEncode({
+              'originalId': '$originalId',
+              'originalCreator': originalCreator,
+              'messageId': '$messageId',
+            }),
+          )
           .timeout(Duration(seconds: 25));
       if (response.statusCode != 200)
-        throw IotException(code: response.statusCode, error: response.headers['iot-upgrade'] ?? 'N');
+        throw IotException(
+          code: response.statusCode,
+          error: response.headers['iot-upgrade'] ?? 'N',
+        );
       return (response.body == 'SUCCESS');
     } on IotException catch (e) {
       throw e;
     } catch (e) {
-      if (e.toString().contains('errno = 101')) throw IotException(code: 101);
-      if (e.toString().startsWith('TimeoutException')) throw IotException(code: 408);
-      throw IotException(code: 0);
+      throw IotException.fromError(e);
     }
   }
 
   Future<List<IotEmotionUser>> fetchEmotionUsers(
-      int originalId, String originalCreator, int messageId) async {
+    int originalId,
+    String originalCreator,
+    int messageId,
+  ) async {
     try {
       late String wsToken;
       Codec<String, String> codec = utf8.fuse(base64);
       await IotSharedPreferences().get().then((prefs) => wsToken = prefs[0]);
       final response = await http.Client()
-          .post(Uri.parse(IOT_REQUEST_URL + 'listEmotionUsers'),
-              headers: {
-                "Authorization": "Bearer " + wsToken,
-                "Vendor": codec.encode(IOT_APP_VERSION)
-              },
-              body: jsonEncode({
-                'originalId': '$originalId',
-                'originalCreator': originalCreator,
-                'messageId': '$messageId'
-              }))
+          .post(
+            Uri.parse(IOT_REQUEST_URL + 'listEmotionUsers'),
+            headers: {
+              "Authorization": "Bearer " + wsToken,
+              "Vendor": codec.encode(IOT_APP_VERSION),
+            },
+            body: jsonEncode({
+              'originalId': '$originalId',
+              'originalCreator': originalCreator,
+              'messageId': '$messageId',
+            }),
+          )
           .timeout(Duration(seconds: 35));
       if (response.statusCode != 200)
-        throw IotException(code: response.statusCode, error: response.headers['iot-upgrade'] ?? 'N');
+        throw IotException(
+          code: response.statusCode,
+          error: response.headers['iot-upgrade'] ?? 'N',
+        );
       if (response.body == 'null') return [];
       return compute(parseEmotionUser, response.body);
     } on IotException catch (e) {
       throw e;
     } catch (e) {
-      if (e.toString().contains('errno = 101')) throw IotException(code: 101);
-      if (e.toString().startsWith('TimeoutException')) throw IotException(code: 408);
-      throw IotException(code: 0);
+      throw IotException.fromError(e);
     }
   }
 }

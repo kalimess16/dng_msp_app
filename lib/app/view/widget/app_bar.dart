@@ -43,3 +43,30 @@ class IotAppBar {
     return true;
   }
 }
+
+class IotPopScope extends StatelessWidget {
+  final Widget child;
+  final Future<bool> Function()? onWillPop;
+
+  const IotPopScope({
+    super.key,
+    required this.child,
+    this.onWillPop,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (onWillPop != null) {
+          await onWillPop!();
+          return;
+        }
+        if (context.mounted) Navigator.of(context).pop();
+      },
+      child: child,
+    );
+  }
+}

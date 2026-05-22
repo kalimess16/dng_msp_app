@@ -79,8 +79,9 @@ class IotExceptionPage extends StatelessWidget {
                         ),
                         onPressed: () async {
                           IotSharedPreferences().clear();
-                          if (await canLaunch(IOT_UPGRADE_APP_URL)) {
-                            await launch(IOT_UPGRADE_APP_URL);
+                          final url = Uri.parse(IOT_UPGRADE_APP_URL);
+                          if (await canLaunchUrl(url)) {
+                            await launchUrl(url);
                           } else
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                                 content: Text('Không nâng cấp được IOT !!')));

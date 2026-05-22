@@ -14,7 +14,9 @@ List<IotDataReport> parseIotDetailReport(String responseBody) {
 
 class IotDetailManualReportService {
   Future<List<IotDataReport>> fetchDetailReport(
-      String reportCode, Map<String, dynamic> mapReportParameters) async {
+    String reportCode,
+    Map<String, dynamic> mapReportParameters,
+  ) async {
     try {
       Codec<String, String> codec = utf8.fuse(base64);
       late String wsToken;
@@ -23,24 +25,27 @@ class IotDetailManualReportService {
       _map.updateAll((key, value) => (value ?? ''));
       _map.putIfAbsent("reportCode", () => reportCode);
       final response = await http.Client()
-          .post(Uri.parse(IOT_REQUEST_URL + "detailCompactReports"),
-              headers: {
-                "Authorization": "Bearer " + wsToken,
-                "Vendor": codec.encode(IOT_APP_VERSION)
-              },
-              body: jsonEncode(_map))
+          .post(
+            Uri.parse(IOT_REQUEST_URL + "detailCompactReports"),
+            headers: {
+              "Authorization": "Bearer " + wsToken,
+              "Vendor": codec.encode(IOT_APP_VERSION),
+            },
+            body: jsonEncode(_map),
+          )
           .timeout(Duration(seconds: 35));
       if (response.statusCode != 200)
         throw IotException(
-            error: response.headers['iot-upgrade'] ?? 'N', code: response.statusCode);
-      if (response.body == 'null' || response.body == '[]') throw IotException(code: -2);
+          error: response.headers['iot-upgrade'] ?? 'N',
+          code: response.statusCode,
+        );
+      if (response.body == 'null' || response.body == '[]')
+        throw IotException(code: -2);
       return compute(parseIotDetailReport, response.body);
     } on IotException catch (e) {
       throw e;
     } catch (e) {
-      if (e.toString().contains('errno = 101')) throw IotException(code: 101);
-      if (e.toString().startsWith('TimeoutException')) throw IotException(code: 408);
-      throw IotException(code: 0);
+      throw IotException.fromError(e);
     }
   }
 }

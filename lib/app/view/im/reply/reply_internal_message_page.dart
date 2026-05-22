@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dngmsp/app/model/im/download_file.dart';
@@ -27,6 +28,8 @@ import 'package:dngmsp/app/view/widget/circular_progress_widget.dart';
 import 'package:dngmsp/app/view/widget/exception_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
 class IotReplyInternalMessagePage extends StatefulWidget {
@@ -35,8 +38,13 @@ class IotReplyInternalMessagePage extends StatefulWidget {
   final String groupName;
   final bool onTapBackground;
   final String searchWords;
-  IotReplyInternalMessagePage(this.originalId, this.originalCreator,
-      this.groupName, this.onTapBackground, this.searchWords);
+  IotReplyInternalMessagePage(
+    this.originalId,
+    this.originalCreator,
+    this.groupName,
+    this.onTapBackground,
+    this.searchWords,
+  );
 
   @override
   _IotReplyInternalMessagePageState createState() =>
@@ -49,6 +57,7 @@ class _IotReplyInternalMessagePageState
   late final IotEmojiStream _emojiStream;
   late final IotEmotionStream _emotionStream;
   late final String _username;
+  final Map<String, List<IotDownloadFile>> _messageFilesCache = {};
 
   @override
   void initState() {
@@ -64,6 +73,7 @@ class _IotReplyInternalMessagePageState
     _emojiStream.dispose();
     _emotionStream.dispose();
     _controller.dispose();
+    _messageFilesCache.clear();
     IotStaticVariable.iotOnReplyInternalMessagePage = false;
     /*
     Future<void> _deleteCacheDir() async {
@@ -84,87 +94,98 @@ class _IotReplyInternalMessagePageState
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-        child: Scaffold(
-          appBar: IotAppBar().build(context, false, widget.groupName),
-          body: FutureBuilder(
-              future: IotSharedPreferences().get(),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  var data = snapshot.data as List<String>;
-                  _username = data[3];
-                  return _buildBody();
-                }
-                return SizedBox();
-              }),
-          bottomNavigationBar: IotBottomNavigatorBar(),
+    return IotPopScope(
+      child: Scaffold(
+        appBar: IotAppBar().build(context, false, widget.groupName),
+        body: FutureBuilder(
+          future: IotSharedPreferences().get(),
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              var data = snapshot.data as List<String>;
+              _username = data[3];
+              return _buildBody();
+            }
+            return SizedBox();
+          },
         ),
-        onWillPop: () async {
-          if (widget.onTapBackground)
-            Navigator.popUntil(
-                context, ModalRoute.withName(IotRoutes.HOME_PAGE));
-          else
-            Navigator.of(context).pop();
-          return true;
-        });
+        bottomNavigationBar: IotBottomNavigatorBar(),
+      ),
+      onWillPop: () async {
+        if (widget.onTapBackground)
+          Navigator.popUntil(context, ModalRoute.withName(IotRoutes.HOME_PAGE));
+        else
+          Navigator.of(context).pop();
+        return true;
+      },
+    );
   }
 
   Widget _buildBody() {
     return FutureBuilder(
-        future: context
-            .read<IotReplyInternalMessageStream>()
-            .listReplyIotInternalMessages(
-                widget.originalId, widget.originalCreator),
-        builder: (context, snapshot) {
-          if (snapshot.hasError)
-            return IotExceptionPage(exception: snapshot.error);
-          if (snapshot.hasData) {
-            return Container(
-                child: Column(
+      future: context
+          .read<IotReplyInternalMessageStream>()
+          .listReplyIotInternalMessages(
+            widget.originalId,
+            widget.originalCreator,
+          ),
+      builder: (context, snapshot) {
+        if (snapshot.hasError)
+          return IotExceptionPage(exception: snapshot.error);
+        if (snapshot.hasData) {
+          return Container(
+            child: Column(
               children: [
                 Expanded(
-                    child: Container(
-                  alignment: FractionalOffset.bottomCenter,
-                  padding: const EdgeInsets.only(bottom: 20),
-                  child: SingleChildScrollView(
+                  child: Container(
+                    alignment: FractionalOffset.bottomCenter,
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: SingleChildScrollView(
                       reverse: true,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Flexible(
                             child: _buildOriginalMessages(
-                                snapshot.data as List<IotInternalMessage>),
+                              snapshot.data as List<IotInternalMessage>,
+                            ),
                             fit: FlexFit.loose,
                           ),
                           Flexible(
-                              child: _buildIncomingMessages(),
-                              fit: FlexFit.loose)
+                            child: _buildIncomingMessages(),
+                            fit: FlexFit.loose,
+                          ),
                         ],
-                      )),
-                )),
+                      ),
+                    ),
+                  ),
+                ),
                 Column(
                   children: [
                     _composeMessageContent(),
                     Padding(
-                        child: Align(
-                          child: _composeMessageButton(),
-                          alignment: Alignment.centerRight,
-                        ),
-                        padding: const EdgeInsets.only(right: 20)),
+                      child: Align(
+                        child: _composeMessageButton(),
+                        alignment: Alignment.centerRight,
+                      ),
+                      padding: const EdgeInsets.only(right: 20),
+                    ),
                   ],
-                )
+                ),
               ],
-            ));
-          }
-          return IotCircularProgressWidget();
-        });
+            ),
+          );
+        }
+        return IotCircularProgressWidget();
+      },
+    );
     //});
   }
 
   Widget _buildIncomingMessages() {
     var _hasInitiation = false;
-    return Consumer<IotReplyInternalMessageStream>(builder: (context, fcm, _) {
-      return FutureBuilder(
+    return Consumer<IotReplyInternalMessageStream>(
+      builder: (context, fcm, _) {
+        return FutureBuilder(
           future: context
               .watch<IotReplyInternalMessageStream>()
               .listIncomingReplyMessages(_hasInitiation),
@@ -181,26 +202,39 @@ class _IotReplyInternalMessagePageState
                 itemBuilder: (context, index) {
                   return Container(
                     decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: Colors.black12),
-                        borderRadius: BorderRadius.all(Radius.circular(12.0))),
+                      color: Colors.white,
+                      border: Border.all(color: Colors.black12),
+                      borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                    ),
                     margin: const EdgeInsets.all(30.0),
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      _messageTopBar(data[index].creatorName, data[index].time),
-                      _messageTitle(data[index].title),
-                      ((data[index].hasFile ?? 'N') == 'Y'
-                          ? _messageFiles(data[index].id, data[index].creator)
-                          : SizedBox()),
-                      _messageButtons(true, data[index].id, data[index].creator,
-                          data[index].emotion ?? 0)
-                    ]),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _messageTopBar(
+                          data[index].creatorName,
+                          data[index].time,
+                        ),
+                        _messageTitle(data[index]),
+                        ((data[index].hasFile ?? 'N') == 'Y'
+                            ? _messageFiles(data[index].id, data[index].creator)
+                            : SizedBox()),
+                        _messageButtons(
+                          true,
+                          data[index].id,
+                          data[index].creator,
+                          data[index].emotion ?? 0,
+                        ),
+                      ],
+                    ),
                   );
                 },
               );
             }
             return SizedBox();
-          });
-    });
+          },
+        );
+      },
+    );
   }
 
   Widget _buildOriginalMessages(List<IotInternalMessage> data) {
@@ -212,19 +246,27 @@ class _IotReplyInternalMessagePageState
       itemBuilder: (context, index) {
         return Container(
           decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: Colors.black12),
-              borderRadius: BorderRadius.all(Radius.circular(12.0))),
+            color: Colors.white,
+            border: Border.all(color: Colors.black12),
+            borderRadius: BorderRadius.all(Radius.circular(12.0)),
+          ),
           margin: const EdgeInsets.all(30.0),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            _messageTopBar(data[index].creatorName, data[index].time),
-            _messageTitle(data[index].title),
-            ((data[index].hasFile ?? 'N') == 'Y'
-                ? _messageFiles(data[index].id, data[index].creator)
-                : SizedBox()),
-            _messageButtons(false, data[index].id, data[index].creator,
-                data[index].emotion ?? 0)
-          ]),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _messageTopBar(data[index].creatorName, data[index].time),
+              _messageTitle(data[index]),
+              ((data[index].hasFile ?? 'N') == 'Y'
+                  ? _messageFiles(data[index].id, data[index].creator)
+                  : SizedBox()),
+              _messageButtons(
+                false,
+                data[index].id,
+                data[index].creator,
+                data[index].emotion ?? 0,
+              ),
+            ],
+          ),
         );
       },
     );
@@ -232,173 +274,288 @@ class _IotReplyInternalMessagePageState
 
   Widget _messageTopBar(String creatorName, int time) {
     return Container(
-        decoration: const BoxDecoration(
-            color: Colors.black12,
-            borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(11.0),
-                topRight: Radius.circular(11.0))),
-        padding: const EdgeInsets.all(10),
-        child:
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      decoration: const BoxDecoration(
+        color: Colors.black12,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(11.0),
+          topRight: Radius.circular(11.0),
+        ),
+      ),
+      padding: const EdgeInsets.all(10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
           Flexible(
-              child: Text(
-                creatorName,
-                style: TextStyle(fontSize: SP_SMALL_COMMON_FONT_SIZE.sp),
-              ),
-              fit: FlexFit.loose),
+            child: Text(
+              creatorName,
+              style: TextStyle(fontSize: SP_SMALL_COMMON_FONT_SIZE.sp),
+            ),
+            fit: FlexFit.loose,
+          ),
           Text(
             IotUtility().parseTimeMessage(time),
             style: TextStyle(
-                color: Colors.black87, fontSize: SP_SMALL_COMMON_FONT_SIZE.sp),
+              color: Colors.black87,
+              fontSize: SP_SMALL_COMMON_FONT_SIZE.sp,
+            ),
           ),
-        ]));
+        ],
+      ),
+    );
   }
 
-  Widget _messageTitle(String title) {
+  Widget _messageTitle(IotInternalMessage message) {
     return Container(
-        constraints: const BoxConstraints(minWidth: double.infinity),
-        padding: const EdgeInsets.all(10),
-        child: RichText(
-          text: TextSpan(
-              children: IotReplyInternalMessageStream()
-                  .extractIotMessageTitle(context, title, widget.searchWords)),
-        ));
+      constraints: const BoxConstraints(minWidth: double.infinity),
+      padding: const EdgeInsets.all(10),
+      child: RichText(
+        text: TextSpan(
+          children: IotReplyInternalMessageStream().extractIotMessageTitle(
+            context,
+            message.title,
+            widget.searchWords,
+            onEofficeTitleTap: (fileIndex) =>
+                _onTapMessageTitleFile(message.creator, message.id, fileIndex),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _messageKey(String creator, int messageId) {
+    return '$creator:$messageId';
+  }
+
+  Future<void> _onTapMessageTitleFile(
+    String creator,
+    int messageId,
+    int fileIndex,
+  ) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return SimpleDialog(
+          contentPadding: EdgeInsets.all(60),
+          children: [
+            FutureBuilder<IotDownloadFile>(
+              future: _downloadMessageFile(creator, messageId, fileIndex),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  Navigator.of(context).pop(true);
+                  _previewDownloadFile(snapshot.data as IotDownloadFile);
+                } else if (snapshot.hasError) {
+                  Navigator.of(context).pop(false);
+                }
+                return IotCircularProgressWidget();
+              },
+            ),
+          ],
+        );
+      },
+    ).then((value) {
+      if (value == false)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('KHÔNG THỂ TẢI VỀ FILE NÀY !!')));
+    });
+  }
+
+  Future<List<IotDownloadFile>> _loadMessageFiles(
+    String creator,
+    int messageId,
+  ) async {
+    final key = _messageKey(creator, messageId);
+    final cachedFiles = _messageFilesCache[key];
+    if (cachedFiles != null) return cachedFiles;
+    final files = await IotReplyInternalMessageStream().downloadFiles(
+      messageId,
+      widget.originalId,
+      widget.originalCreator,
+    );
+    _messageFilesCache[key] = files;
+    return files;
+  }
+
+  Future<IotDownloadFile> _downloadMessageFile(
+    String creator,
+    int messageId,
+    int fileIndex,
+  ) async {
+    final files = await _loadMessageFiles(creator, messageId);
+    if (fileIndex < 0 || fileIndex >= files.length) throw Exception();
+    final file = files[fileIndex];
+    return IotReplyInternalMessageStream().downloadDataFiles(
+      creator,
+      messageId,
+      file.fileName,
+      file.fileType,
+    );
+  }
+
+  void _previewDownloadFile(IotDownloadFile downloadFile) async {
+    Directory _path = await getTemporaryDirectory();
+    File _tempFile = File('${_path.path}/${downloadFile.fileName}');
+    var raf = _tempFile.openSync(mode: FileMode.write);
+    raf.writeFromSync(base64Decode(downloadFile.fileData));
+    await raf.close();
+    OpenResult result = await OpenFile.open(_tempFile.path);
+    if (result.type == ResultType.noAppToOpen)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('CHƯA CÀI ĐẶT APP ĐỂ ĐỌC ĐỊNH DẠNG FILE NÀY')),
+      );
   }
 
   Widget _messageFiles(int messageId, String creator) {
     return FutureBuilder(
-        future: IotReplyInternalMessageStream().downloadFiles(
-            messageId, widget.originalId, widget.originalCreator),
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            List<IotDownloadFile> files =
-                snapshot.data as List<IotDownloadFile>;
-            return ListView.builder(
-                physics: const NeverScrollableScrollPhysics(),
-                shrinkWrap: true,
-                itemCount: files.length,
-                itemBuilder: (context, index) {
-                  return IotReplyDownloadFileWidget(
-                      creator,
-                      messageId,
-                      files[index].fileData,
-                      files[index].fileName,
-                      files[index].fileType,
-                      files[index].fileOrder,
-                      files[index].eofficeId,
-                      widget.searchWords);
-                });
-          }
-          if (snapshot.hasError) return Icon(Icons.error_outline);
-          return CircularProgressIndicator(
-            strokeWidth: 1.0,
+      future: _loadMessageFiles(creator, messageId),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          List<IotDownloadFile> files = snapshot.data as List<IotDownloadFile>;
+          return ListView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            itemCount: files.length,
+            itemBuilder: (context, index) {
+              return IotReplyDownloadFileWidget(
+                creator,
+                messageId,
+                files[index].fileData,
+                files[index].fileName,
+                files[index].fileType,
+                files[index].fileOrder,
+                files[index].eofficeId,
+                widget.searchWords,
+              );
+            },
           );
-        });
+        }
+        if (snapshot.hasError) return Icon(Icons.error_outline);
+        return CircularProgressIndicator(strokeWidth: 1.0);
+      },
+    );
   }
 
   Widget _messageButtons(
-      bool isInComing, int messageId, String messageCreator, int emotion) {
+    bool isInComing,
+    int messageId,
+    String messageCreator,
+    int emotion,
+  ) {
     return Row(
       children: [
         _messageForwardButton(messageId, messageCreator),
         Expanded(
-            child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-          Padding(
-              child: _messageEmotionButton(messageId),
-              padding: const EdgeInsets.only(right: 15)),
-          (messageCreator == _username
-              ? SizedBox()
-              : IotConfirmButton(
-                  originalId: widget.originalId,
-                  originalCreator: widget.originalCreator,
-                  messageId: messageId,
-                  emotion: emotion,
-                  isIncoming: isInComing,
-                ))
-        ])),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Padding(
+                child: _messageEmotionButton(messageId),
+                padding: const EdgeInsets.only(right: 15),
+              ),
+              (messageCreator == _username
+                  ? SizedBox()
+                  : IotConfirmButton(
+                      originalId: widget.originalId,
+                      originalCreator: widget.originalCreator,
+                      messageId: messageId,
+                      emotion: emotion,
+                      isIncoming: isInComing,
+                    )),
+            ],
+          ),
+        ),
       ],
     );
   }
 
   Widget _messageForwardButton(int messageId, String messageCreator) {
     return TextButton(
-        onPressed: () async {
-          final IotPositionStream positionStream = IotPositionStream();
-          await showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) {
-                return SimpleDialog(children: [
-                  FutureBuilder<List<IotPosition>>(
-                      future: positionStream.initPositions(),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasData) Navigator.of(context).pop();
-                        if (snapshot.hasError)
-                          return IotExceptionPage(exception: snapshot.error);
-                        return IotCircularProgressWidget();
-                      })
-                ]);
-              });
-          if (positionStream.positions.isNotEmpty)
-            Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (BuildContext context) =>
-                            IotListPositionsPage(positionStream)))
-                .then((value) async {
-              if (positionStream.positions
-                  .where((element) => element.selected ?? false)
-                  .isNotEmpty)
-                await showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) {
-                      return SimpleDialog(
-                          contentPadding: EdgeInsets.zero,
-                          titlePadding: EdgeInsets.zero,
-                          children: [
-                            IotForwardMessagePage(
-                                positionStream,
-                                widget.originalId,
-                                widget.originalCreator,
-                                messageId,
-                                messageCreator)
-                          ]);
-                    });
-            });
-        },
-        child: Column(
-          children: [
-            const Icon(Icons.forward),
-            Text(
-              'Chuyển tiếp',
-              style: TextStyle(fontSize: SP_SMALL_COMMON_FONT_SIZE.sp),
-            )
-          ],
-        ));
+      onPressed: () async {
+        final IotPositionStream positionStream = IotPositionStream();
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) {
+            return SimpleDialog(
+              children: [
+                FutureBuilder<List<IotPosition>>(
+                  future: positionStream.initPositions(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) Navigator.of(context).pop();
+                    if (snapshot.hasError)
+                      return IotExceptionPage(exception: snapshot.error);
+                    return IotCircularProgressWidget();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+        if (positionStream.positions.isNotEmpty)
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (BuildContext context) =>
+                  IotListPositionsPage(positionStream),
+            ),
+          ).then((value) async {
+            if (positionStream.positions
+                .where((element) => element.selected ?? false)
+                .isNotEmpty)
+              await showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) {
+                  return SimpleDialog(
+                    contentPadding: EdgeInsets.zero,
+                    titlePadding: EdgeInsets.zero,
+                    children: [
+                      IotForwardMessagePage(
+                        positionStream,
+                        widget.originalId,
+                        widget.originalCreator,
+                        messageId,
+                        messageCreator,
+                      ),
+                    ],
+                  );
+                },
+              );
+          });
+      },
+      child: Column(
+        children: [
+          const Icon(Icons.forward),
+          Text(
+            'Chuyển tiếp',
+            style: TextStyle(fontSize: SP_SMALL_COMMON_FONT_SIZE.sp),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _messageEmotionButton(int messageId) {
     return IconButton(
-      icon: Icon(
-        Icons.people_outline_rounded,
-        color: IOT_BG_COLOR,
-      ),
+      icon: Icon(Icons.people_outline_rounded, color: IOT_BG_COLOR),
       onPressed: () async {
         await showDialog(
-            context: context,
-            builder: (context) {
-              return SimpleDialog(
-                  contentPadding: EdgeInsets.zero,
-                  titlePadding: EdgeInsets.zero,
-                  children: [
-                    IotEmotionUserPage(
-                      originalId: widget.originalId,
-                      originalCreator: widget.originalCreator,
-                      messageId: messageId,
-                    )
-                  ]);
-            });
+          context: context,
+          builder: (context) {
+            return SimpleDialog(
+              contentPadding: EdgeInsets.zero,
+              titlePadding: EdgeInsets.zero,
+              children: [
+                IotEmotionUserPage(
+                  originalId: widget.originalId,
+                  originalCreator: widget.originalCreator,
+                  messageId: messageId,
+                ),
+              ],
+            );
+          },
+        );
       },
     );
   }
@@ -408,75 +565,78 @@ class _IotReplyInternalMessagePageState
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Expanded(child: SizedBox()),
-        _sendButton()
+        _sendButton(),
       ],
     );
   }
 
-
   Widget _sendButton() {
     return TextButton(
-      child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-        const Icon(
-          Icons.send,
-          size: 32,
-          color: IOT_BG_COLOR,
-        ),
-        Text(
-          'Gửi',
-          style: TextStyle(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          const Icon(Icons.send, size: 32, color: IOT_BG_COLOR),
+          Text(
+            'Gửi',
+            style: TextStyle(
               color: IOT_BG_COLOR,
               fontSize: SP_COMMON_FONT_SIZE.sp,
-              fontWeight: FontWeight.bold),
-        ),
-      ]),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
       onPressed: () async => await _sendMessage(),
     );
   }
 
   Future<void> _sendMessage() async {
     if (_controller.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(
-          'CHƯA CÓ NỘI DUNG',
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('CHƯA CÓ NỘI DUNG'),
+          action: SnackBarAction(onPressed: () => null, label: 'OK'),
+          padding: EdgeInsets.all(10),
         ),
-        action: SnackBarAction(
-          onPressed: () => null,
-          label: 'OK',
-        ),
-        padding: EdgeInsets.all(10),
-      ));
+      );
       return;
     }
 
     List<IotInternalMessage> _uploadedMessage = [];
     await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          return WillPopScope(
-              child:
-                  SimpleDialog(contentPadding: EdgeInsets.all(60), children: [
-                FutureBuilder<List<IotInternalMessage>>(
-                    future: context
-                        .read<IotReplyInternalMessageStream>()
-                        .uploadReplyMessage(
-                            widget.originalId,
-                            widget.originalCreator,
-                            DateTime.now().millisecondsSinceEpoch,
-                            _controller.text,
-                            <File>[]),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData) {
-                        Navigator.of(context).pop();
-                        _uploadedMessage =
-                            snapshot.data as List<IotInternalMessage>;
-                      } else if (snapshot.hasError) Navigator.of(context).pop();
-                      return IotCircularProgressWidget();
-                    })
-              ]),
-              onWillPop: () async => false);
-        });
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return IotPopScope(
+          child: SimpleDialog(
+            contentPadding: EdgeInsets.all(60),
+            children: [
+              FutureBuilder<List<IotInternalMessage>>(
+                future: context
+                    .read<IotReplyInternalMessageStream>()
+                    .uploadReplyMessage(
+                      widget.originalId,
+                      widget.originalCreator,
+                      DateTime.now().millisecondsSinceEpoch,
+                      _controller.text,
+                      <File>[],
+                    ),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    Navigator.of(context).pop();
+                    _uploadedMessage =
+                        snapshot.data as List<IotInternalMessage>;
+                  } else if (snapshot.hasError)
+                    Navigator.of(context).pop();
+                  return IotCircularProgressWidget();
+                },
+              ),
+            ],
+          ),
+          onWillPop: () async => false,
+        );
+      },
+    );
     if (_uploadedMessage.isNotEmpty) {
       _controller.clear();
       _emojiStream.hideEmojis();
@@ -484,26 +644,30 @@ class _IotReplyInternalMessagePageState
           .read<IotListInternalMessageStream>()
           .updateListInternalMessage(_uploadedMessage.first);
     } else
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
           backgroundColor: Colors.white,
           padding: EdgeInsets.all(15),
           content: Text(
             'KHÔNG GỬI THÔNG TIN NÀY ĐƯỢC !!',
             style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-          )));
+          ),
+        ),
+      );
   }
 
   Widget _composeMessageContent() {
     return Container(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Flexible(child: _buildEmojis(), fit: FlexFit.loose),
-            _buildMessage(),
-          ],
-        ),
-        alignment: Alignment.bottomCenter);
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Flexible(child: _buildEmojis(), fit: FlexFit.loose),
+          _buildMessage(),
+        ],
+      ),
+      alignment: Alignment.bottomCenter,
+    );
   }
 
   Widget _buildMessage() {
@@ -519,7 +683,8 @@ class _IotReplyInternalMessagePageState
         suffixIcon: _buildEmojiButton(),
         isDense: true,
         border: const OutlineInputBorder(
-            borderSide: BorderSide(color: IOT_BG_COLOR)),
+          borderSide: BorderSide(color: IOT_BG_COLOR),
+        ),
       ),
       onTap: () => _emojiStream.hideEmojis(),
     );
@@ -527,49 +692,54 @@ class _IotReplyInternalMessagePageState
 
   Widget _buildEmojiButton() {
     return IconButton(
-        icon: const Icon(
-          Icons.emoji_emotions_outlined,
-          size: 36,
-          color: Colors.black54,
-        ),
-        onPressed: () async {
-          await _emojiStream.showEmojis();
-        });
+      icon: const Icon(
+        Icons.emoji_emotions_outlined,
+        size: 36,
+        color: Colors.black54,
+      ),
+      onPressed: () async {
+        await _emojiStream.showEmojis();
+      },
+    );
   }
 
   Widget _buildEmojis() {
     final List<Widget> _emojiWidgets = [];
     IotEmoji().emojis.forEach((emoji) {
-      _emojiWidgets.add(GestureDetector(
+      _emojiWidgets.add(
+        GestureDetector(
           child: Container(
-            child: FittedBox(
-              child: Text(emoji),
-              fit: BoxFit.fitHeight,
-            ),
+            child: FittedBox(child: Text(emoji), fit: BoxFit.fitHeight),
             height: 8 * (Platform.isIOS ? 1.2 : 1),
             padding: const EdgeInsets.all(5),
           ),
-          onTap: () => _onEmojiSelected(emoji)));
+          onTap: () => _onEmojiSelected(emoji),
+        ),
+      );
     });
 
     return StreamBuilder(
-        stream: _emojiStream.emojiStream,
-        builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
-          if (snapshot.data == null) return SizedBox();
-          final bool _offstage = snapshot.data as bool;
-          if (!_offstage) return const SizedBox();
-          return Container(
-              height: 120,
-              decoration: BoxDecoration(
-                  border: Border.all(color: IOT_FG_COLOR, width: 1.5)),
-              child: GridView.count(
-                  padding: const EdgeInsets.all(5),
-                  crossAxisSpacing: 5,
-                  mainAxisSpacing: 5,
-                  crossAxisCount: 9,
-                  shrinkWrap: true,
-                  children: _emojiWidgets));
-        });
+      stream: _emojiStream.emojiStream,
+      builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+        if (snapshot.data == null) return SizedBox();
+        final bool _offstage = snapshot.data as bool;
+        if (!_offstage) return const SizedBox();
+        return Container(
+          height: 120,
+          decoration: BoxDecoration(
+            border: Border.all(color: IOT_FG_COLOR, width: 1.5),
+          ),
+          child: GridView.count(
+            padding: const EdgeInsets.all(5),
+            crossAxisSpacing: 5,
+            mainAxisSpacing: 5,
+            crossAxisCount: 9,
+            shrinkWrap: true,
+            children: _emojiWidgets,
+          ),
+        );
+      },
+    );
   }
 
   _onEmojiSelected(String emoji) {
@@ -579,13 +749,15 @@ class _IotReplyInternalMessagePageState
       _controller
         ..text += emoji
         ..selection = TextSelection.fromPosition(
-            TextPosition(offset: _controller.text.length));
+          TextPosition(offset: _controller.text.length),
+        );
     else {
       final newText = text.replaceRange(selection.start, selection.end, emoji);
       _controller.value = TextEditingValue(
         text: newText,
         selection: TextSelection.collapsed(
-            offset: selection.baseOffset + emoji.length),
+          offset: selection.baseOffset + emoji.length,
+        ),
       );
     }
   }

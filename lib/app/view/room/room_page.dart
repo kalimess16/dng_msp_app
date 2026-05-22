@@ -21,7 +21,7 @@ class _IotServerRoomPageState extends State<IotServerRoomPage> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
+    return IotPopScope(
         child: Scaffold(
           appBar: IotAppBar().build(context, true, 'NHIỆT ĐỘ PMC VÀ WAN'),
           body: _buildBodyPage(),

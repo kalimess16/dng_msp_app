@@ -18,7 +18,7 @@ class IotAutoReportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     IotBottomNavigatorBar.selectedIotBottomNavigatorBar = 1;
-    return WillPopScope(
+    return IotPopScope(
         child: Scaffold(
             appBar: IotAppBar().build(context, false, title ?? 'BẢNG SỐ LIỆU'),
             body: _buildMessages(context),

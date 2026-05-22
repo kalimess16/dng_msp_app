@@ -19,24 +19,22 @@ class IotAccountLogService {
       Codec<String, String> codec = utf8.fuse(base64);
       await IotSharedPreferences().get().then((prefs) => wsToken = prefs[0]);
       final response = await http.Client().post(
-          Uri.parse(IOT_REQUEST_URL + 'listUserLogs'),
-          headers: {
-            "Authorization": "Bearer " + wsToken,
-            "Vendor": codec.encode(IOT_APP_VERSION)
-          });
+        Uri.parse(IOT_REQUEST_URL + 'listUserLogs'),
+        headers: {
+          "Authorization": "Bearer " + wsToken,
+          "Vendor": codec.encode(IOT_APP_VERSION),
+        },
+      );
       if (response.statusCode != 200)
         throw IotException(
-            code: response.statusCode, error: response.headers['iot-upgrade'] ?? 'N');
+          code: response.statusCode,
+          error: response.headers['iot-upgrade'] ?? 'N',
+        );
       return compute(parseIotAccountLogs, response.body);
-    }
-    on IotException catch(e) {
+    } on IotException catch (e) {
       throw e;
-    }
-    catch (e) {
-      if (e.toString().contains('errno = 101'))
-        throw IotException(code: 101);
-      throw IotException(code: 0);
+    } catch (e) {
+      throw IotException.fromError(e);
     }
   }
-
 }

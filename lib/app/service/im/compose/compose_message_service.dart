@@ -16,13 +16,22 @@ List<IotInternalMessage> parseIotInternalMessage(String responseBody) {
 
 class IotComposeMessageService {
   Future<bool> uploadMessage(
-      String wsToken, int originalId, String receivers, String content, List<File> files) async {
+    String wsToken,
+    int originalId,
+    String receivers,
+    String content,
+    List<File> files,
+  ) async {
     try {
       Codec<String, String> codec = utf8.fuse(base64);
-      final request =
-          http.MultipartRequest('POST', Uri.parse(IOT_REQUEST_URL + 'uploadDocumentFiles'));
-      request.headers
-          .addAll({"Authorization": "Bearer " + wsToken, "Vendor": codec.encode(IOT_APP_VERSION)});
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse(IOT_REQUEST_URL + 'uploadDocumentFiles'),
+      );
+      request.headers.addAll({
+        "Authorization": "Bearer " + wsToken,
+        "Vendor": codec.encode(IOT_APP_VERSION),
+      });
       request.fields.addAll({
         'originalId': '$originalId',
         'receiver': receivers,
@@ -33,38 +42,47 @@ class IotComposeMessageService {
         if (_mimeType.isNotEmpty) {
           var _types = _mimeType.split('/');
           request.files.add(
-            await http.MultipartFile.fromPath('files', element.path,
-                contentType: MediaType(_types[0], _types[1])),
-          );
-        } else
-          request.files.add(
             await http.MultipartFile.fromPath(
               'files',
               element.path,
+              contentType: MediaType(_types[0], _types[1]),
             ),
           );
+        } else
+          request.files.add(
+            await http.MultipartFile.fromPath('files', element.path),
+          );
       });
-      var response =
-          await http.Response.fromStream(await request.send());
+      var response = await http.Response.fromStream(await request.send());
       if (response.statusCode == 200 && response.body == 'SUCCESS') return true;
-      throw IotException(error: response.headers['iot-upgrade'] ?? 'N', code: response.statusCode);
+      throw IotException(
+        error: response.headers['iot-upgrade'] ?? 'N',
+        code: response.statusCode,
+      );
     } on IotException catch (e) {
       throw e;
     } catch (e) {
-      if (e.toString().contains('errno = 101')) throw IotException(code: 101);
-      if (e.toString().startsWith('TimeoutException')) throw IotException(code: 408);
-      throw IotException(code: 0);
+      throw IotException.fromError(e);
     }
   }
 
   Future<List<IotInternalMessage>> uploadMessageInList(
-      String wsToken, int originalId, String receivers, String content, List<File> files) async {
+    String wsToken,
+    int originalId,
+    String receivers,
+    String content,
+    List<File> files,
+  ) async {
     try {
       Codec<String, String> codec = utf8.fuse(base64);
-      final request =
-      http.MultipartRequest('POST', Uri.parse(IOT_REQUEST_URL + 'uploadDocumentFilesInList'));
-      request.headers
-          .addAll({"Authorization": "Bearer " + wsToken, "Vendor": codec.encode(IOT_APP_VERSION)});
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse(IOT_REQUEST_URL + 'uploadDocumentFilesInList'),
+      );
+      request.headers.addAll({
+        "Authorization": "Bearer " + wsToken,
+        "Vendor": codec.encode(IOT_APP_VERSION),
+      });
       request.fields.addAll({
         'originalId': '$originalId',
         'receiver': receivers,
@@ -75,28 +93,28 @@ class IotComposeMessageService {
         if (_mimeType.isNotEmpty) {
           var _types = _mimeType.split('/');
           request.files.add(
-            await http.MultipartFile.fromPath('files', element.path,
-                contentType: MediaType(_types[0], _types[1])),
-          );
-        } else
-          request.files.add(
             await http.MultipartFile.fromPath(
               'files',
               element.path,
+              contentType: MediaType(_types[0], _types[1]),
             ),
           );
+        } else
+          request.files.add(
+            await http.MultipartFile.fromPath('files', element.path),
+          );
       });
-      var response =
-      await http.Response.fromStream(await request.send());
+      var response = await http.Response.fromStream(await request.send());
       if (response.statusCode != 200)
-        throw IotException(error: response.headers['iot-upgrade'] ?? 'N', code: response.statusCode);
+        throw IotException(
+          error: response.headers['iot-upgrade'] ?? 'N',
+          code: response.statusCode,
+        );
       return compute(parseIotInternalMessage, response.body);
     } on IotException catch (e) {
       throw e;
     } catch (e) {
-      if (e.toString().contains('errno = 101')) throw IotException(code: 101);
-      if (e.toString().startsWith('TimeoutException')) throw IotException(code: 408);
-      throw IotException(code: 0);
+      throw IotException.fromError(e);
     }
   }
 }

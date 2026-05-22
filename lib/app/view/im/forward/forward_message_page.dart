@@ -2,6 +2,7 @@ import 'package:dngmsp/app/model/im/position.dart';
 import 'package:dngmsp/app/resource/color/app_colors.dart';
 import 'package:dngmsp/app/resource/font/app_fonts.dart';
 import 'package:dngmsp/app/view/im/compose/list_postions_page.dart';
+import 'package:dngmsp/app/view/widget/app_bar.dart';
 import 'package:dngmsp/app/view/widget/circular_progress_widget.dart';
 import 'package:dngmsp/app/viewmodel/im/compose/position_stream.dart';
 import 'package:dngmsp/app/viewmodel/im/forward/forward_message_stream.dart';
@@ -140,7 +141,7 @@ class _IotForwardMessagePageState extends State<IotForwardMessagePage> {
         context: context,
         barrierDismissible: false,
         builder: (context) {
-          return WillPopScope(
+          return IotPopScope(
               child: SimpleDialog(contentPadding: EdgeInsets.all(60), children: [
                 FutureBuilder<bool>(
                     future: IotForwardMessageStream().uploadForwardMessage(

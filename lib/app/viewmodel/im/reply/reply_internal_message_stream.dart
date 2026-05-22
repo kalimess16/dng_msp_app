@@ -16,37 +16,59 @@ class IotReplyInternalMessageStream extends ChangeNotifier {
   final List<IotInternalMessage> incomingInternalMessages = [];
 
   Future<List<IotInternalMessage>> listReplyIotInternalMessages(
-      int originalId, String originalCreator) async {
+    int originalId,
+    String originalCreator,
+  ) async {
     internalMessages.clear();
     await IotReplyInternalMessagesService()
         .fetchInternalMessages(originalId, originalCreator)
         .then((value) {
-      internalMessages.addAll(value);
-    });
+          internalMessages.addAll(value);
+        });
     return internalMessages;
   }
 
   Future<List<IotDownloadFile>> downloadFiles(
-      int messageId, int originalId, String originalCreator) async {
-    return await IotReplyInternalMessagesService()
-        .downloadFiles(messageId, originalId, originalCreator);
+    int messageId,
+    int originalId,
+    String originalCreator,
+  ) async {
+    return await IotReplyInternalMessagesService().downloadFiles(
+      messageId,
+      originalId,
+      originalCreator,
+    );
   }
 
   Future<IotDownloadFile> downloadDataFiles(
-      String creator, int messageId, String fileName, String fileType) async {
-    return await IotReplyInternalMessagesService()
-        .downloadDataFiles(creator, messageId, fileName, fileType);
+    String creator,
+    int messageId,
+    String fileName,
+    String fileType,
+  ) async {
+    return await IotReplyInternalMessagesService().downloadDataFiles(
+      creator,
+      messageId,
+      fileName,
+      fileType,
+    );
   }
 
   Future<List<IotInternalMessage>> uploadReplyMessage(
-      int originalId,
-      String originalCreator,
-      int messageId,
-      String content,
-      List<File> files) async {
+    int originalId,
+    String originalCreator,
+    int messageId,
+    String content,
+    List<File> files,
+  ) async {
     var _list = await IotReplyInternalMessagesService()
         .uploadReplyMessage(
-            originalId, originalCreator, messageId, content, files)
+          originalId,
+          originalCreator,
+          messageId,
+          content,
+          files,
+        )
         .catchError((e, s) => <IotInternalMessage>[]);
     if (_list.isNotEmpty) {
       incomingInternalMessages.addAll(_list);
@@ -57,14 +79,16 @@ class IotReplyInternalMessageStream extends ChangeNotifier {
   }
 
   Future<List<IotInternalMessage>> listIncomingReplyMessages(
-      bool hasInitiation) async {
+    bool hasInitiation,
+  ) async {
     if (!hasInitiation) incomingInternalMessages.clear();
     incomingInternalMessages.sort((a, b) => b.time.compareTo(a.time));
     return incomingInternalMessages;
   }
 
   Future<List<dynamic>> parseIotReplyFirebaseMessage(
-      Map<String, dynamic> message) async {
+    Map<String, dynamic> message,
+  ) async {
     if (internalMessages.isEmpty) return [];
     final dynamic data = message['data'] ?? message;
     int originalId = int.tryParse(data['originalId']) ?? 0;
@@ -88,18 +112,28 @@ class IotReplyInternalMessageStream extends ChangeNotifier {
         creatorName: data['creatorName'],
         emotion: int.tryParse(data['emotion'] ?? '0') ?? 0,
         hasFile: data['hasFile'])); */
-    incomingInternalMessages.addAll(await IotReplyInternalMessagesService()
-        .fetchIncomingReplyInternalMessage(
-            originalId, originalCreator, messageId));
+    incomingInternalMessages.addAll(
+      await IotReplyInternalMessagesService().fetchIncomingReplyInternalMessage(
+        originalId,
+        originalCreator,
+        messageId,
+      ),
+    );
 
     notifyListeners();
     return [originalId, originalCreator];
   }
 
   Future<int> updateEmotionNumInternalMessage(
-      int originalId, String originalCreator, int messageId) async {
+    int originalId,
+    String originalCreator,
+    int messageId,
+  ) async {
     if (await IotReplyInternalMessagesService().updateEmotionNumInternalMessage(
-        originalId, originalCreator, messageId)) {
+      originalId,
+      originalCreator,
+      messageId,
+    )) {
       int _emotion = 0;
       internalMessages.forEach((element) {
         if (element.id == messageId) {
@@ -110,8 +144,9 @@ class IotReplyInternalMessageStream extends ChangeNotifier {
       });
       if (_emotion == 0) {
         incomingInternalMessages
-            .firstWhere((element) => element.id == messageId)
-            .emotion = 1;
+                .firstWhere((element) => element.id == messageId)
+                .emotion =
+            1;
         _emotion = 1;
       }
       notifyListeners();
@@ -121,30 +156,55 @@ class IotReplyInternalMessageStream extends ChangeNotifier {
   }
 
   Future<List<IotEmotionUser>> listEmotionUser(
-      int originalId, String originalCreator, int messageId) async {
-    return await IotReplyInternalMessagesService()
-        .fetchEmotionUsers(originalId, originalCreator, messageId);
+    int originalId,
+    String originalCreator,
+    int messageId,
+  ) async {
+    return await IotReplyInternalMessagesService().fetchEmotionUsers(
+      originalId,
+      originalCreator,
+      messageId,
+    );
   }
 
   List<TextSpan> extractIotMessageTitle(
-      BuildContext context, String title, String searchWords) {
+    BuildContext context,
+    String title,
+    String searchWords, {
+    void Function(int)? onEofficeTitleTap,
+  }) {
     List<TextSpan> textSpan = [];
     final urlRegExp = RegExp(
-        r"((https?:www\.)|(https?:\/\/)|(www\.))[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}(\/[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)?");
+      r"((https?:www\.)|(https?:\/\/)|(www\.))[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}(\/[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)?",
+    );
+    final eofficeTitleRegExp = RegExp(
+      r'^\s*-?\s*VB[\s:]+',
+      caseSensitive: false,
+    );
 
     getLink(String linkString) {
       textSpan.add(
         TextSpan(
           text: linkString,
-          style:
-              TextStyle(color: Colors.blue, fontSize: SP_COMMON_FONT_SIZE.sp),
+          style: TextStyle(
+            color: Colors.blue,
+            fontSize: SP_COMMON_FONT_SIZE.sp,
+          ),
           recognizer: TapGestureRecognizer()
             ..onTap = () async {
-              if (await canLaunch(linkString)) {
-                await launch(linkString);
+              final url = Uri.parse(
+                linkString.startsWith(RegExp(r'https?://'))
+                    ? linkString
+                    : 'https://$linkString',
+              );
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url);
               } else
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text('Không kết nối được với đường dẫn này')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Không kết nối được với đường dẫn này'),
+                  ),
+                );
             },
         ),
       );
@@ -157,50 +217,93 @@ class IotReplyInternalMessageStream extends ChangeNotifier {
             ? TextSpan(
                 text: normalText,
                 style: TextStyle(
-                    color: Colors.black, fontSize: SP_COMMON_FONT_SIZE.sp),
+                  color: Colors.black,
+                  fontSize: SP_COMMON_FONT_SIZE.sp,
+                ),
               )
             : TextSpan(
                 children: highlightOccurrences(normalText, searchWords),
                 style: TextStyle(
-                    color: Colors.black, fontSize: SP_COMMON_FONT_SIZE.sp),
+                  color: Colors.black,
+                  fontSize: SP_COMMON_FONT_SIZE.sp,
+                ),
               )),
       );
       return normalText;
     }
 
-    title.splitMapJoin(
-      urlRegExp,
-      onMatch: (m) => getLink("${m.group(0)}"),
-      onNonMatch: (n) => getNormalText("${n.substring(0)}"),
-    );
+    int eofficeTitleIndex = 0;
+    final lines = title.split(RegExp(r'\r\n|\n|\r'));
+    for (var i = 0; i < lines.length; i++) {
+      final line = lines[i];
+      if (onEofficeTitleTap != null && eofficeTitleRegExp.hasMatch(line)) {
+        final fileIndex = eofficeTitleIndex;
+        eofficeTitleIndex++;
+        textSpan.add(
+          TextSpan(
+            text: line,
+            style: TextStyle(
+              color: const Color.fromARGB(248, 0, 0, 0),
+              fontSize: SP_COMMON_FONT_SIZE.sp,
+              fontWeight: FontWeight.w400,
+              // decoration: TextDecoration.underline,
+            ),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () => onEofficeTitleTap(fileIndex),
+          ),
+        );
+      } else {
+        line.splitMapJoin(
+          urlRegExp,
+          onMatch: (m) => getLink("${m.group(0)}"),
+          onNonMatch: (n) => getNormalText("${n.substring(0)}"),
+        );
+      }
+      if (i < lines.length - 1)
+        textSpan.add(
+          TextSpan(
+            text: '\n',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: SP_COMMON_FONT_SIZE.sp,
+            ),
+          ),
+        );
+    }
     return textSpan;
   }
 
   List<TextSpan> highlightOccurrences(String source, String query) {
-    final matches = query.toLowerCase().allMatches(source.toLowerCase());
+    final matches = query
+        .toLowerCase()
+        .allMatches(source.toLowerCase())
+        .toList();
+    if (matches.isEmpty) return [TextSpan(text: source)];
     int lastMatchEnd = 0;
     final List<TextSpan> children = [];
     for (var i = 0; i < matches.length; i++) {
-      final match = matches.elementAt(i);
+      final match = matches[i];
 
       if (match.start != lastMatchEnd) {
-        children.add(TextSpan(
-          text: source.substring(lastMatchEnd, match.start),
-        ));
+        children.add(
+          TextSpan(text: source.substring(lastMatchEnd, match.start)),
+        );
       }
 
-      children.add(TextSpan(
-        text: source.substring(match.start, match.end),
-        style: TextStyle(
-          fontSize: SP_COMMON_FONT_SIZE.sp,
-          backgroundColor: Colors.yellowAccent,
+      children.add(
+        TextSpan(
+          text: source.substring(match.start, match.end),
+          style: TextStyle(
+            fontSize: SP_COMMON_FONT_SIZE.sp,
+            backgroundColor: Colors.yellowAccent,
+          ),
         ),
-      ));
+      );
 
       if (i == matches.length - 1 && match.end != source.length) {
-        children.add(TextSpan(
-          text: source.substring(match.end, source.length),
-        ));
+        children.add(
+          TextSpan(text: source.substring(match.end, source.length)),
+        );
       }
 
       lastMatchEnd = match.end;

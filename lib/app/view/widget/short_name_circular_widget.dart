@@ -92,7 +92,7 @@ class IotShortNameCircular extends StatelessWidget {
                       child: Text(_splitNames[0],
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: IOT_BG_COLOR.withOpacity(0.5),
+                            color: IOT_BG_COLOR.withValues(alpha: 0.5),
                             fontWeight: FontWeight.bold,
                             fontSize: 38.sp,
                           )),
@@ -104,7 +104,7 @@ class IotShortNameCircular extends StatelessWidget {
                             _splitNames[1],
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                                color: IOT_BG_COLOR.withOpacity(0.5),
+                                color: IOT_BG_COLOR.withValues(alpha: 0.5),
                                 fontSize: 38.sp,
                                 fontWeight: FontWeight.bold),
                           ),

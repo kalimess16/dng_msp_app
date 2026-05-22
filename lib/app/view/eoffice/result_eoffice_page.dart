@@ -73,7 +73,7 @@ class _ResultEofficePageState extends State<ResultEofficePage> {
   @override
   Widget build(BuildContext context) {
     IotBottomNavigatorBar.selectedIotBottomNavigatorBar = 2;
-    return WillPopScope(
+    return IotPopScope(
       child: Scaffold(
         appBar: IotAppBar().build(context, false, 'KẾT QUẢ TÌM KIẾM'),
         body: _bodyListMessage(),

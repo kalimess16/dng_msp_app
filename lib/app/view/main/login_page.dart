@@ -4,6 +4,7 @@ import 'package:dngmsp/app/resource/color/app_colors.dart';
 import 'package:dngmsp/app/resource/routes.dart';
 import 'package:dngmsp/app/resource/string/app_strings.dart';
 import 'package:dngmsp/app/resource/string/login_strings.dart';
+import 'package:dngmsp/app/view/widget/app_bar.dart';
 import 'package:dngmsp/app/viewmodel/account/account_stream.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -20,14 +21,14 @@ class _IotLoginPageState extends State<IotLoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
+    return IotPopScope(
       child: Scaffold(
         body: StreamBuilder(
           stream: _loginIotViewModel.loginIotStream,
           builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
             if (snapshot.data != null && snapshot.data == LOGIN_SUCCESS_KEY) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                Navigator.of(context).pop();
+                if (!mounted) return;
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   IotRoutes.HOME_PAGE,
@@ -40,6 +41,8 @@ class _IotLoginPageState extends State<IotLoginPage> {
                 (snapshot.data != null && snapshot.data == LOGIN_AUTH_KEY);
             var _fail =
                 (snapshot.data != null && snapshot.data == LOGIN_FAIL_KEY);
+            var _networkError = (snapshot.data != null &&
+                snapshot.data == LOGIN_NETWORK_ERROR_KEY);
             var _vendor =
                 (snapshot.data != null && snapshot.data == LOGIN_VENDOR);
             return Container(
@@ -91,7 +94,11 @@ class _IotLoginPageState extends State<IotLoginPage> {
                                         ),
                                       )
                                     : _signInGroupButton()),
-                                _showFailLoginMessage(_vendor, _fail),
+                                _showFailLoginMessage(
+                                  _vendor,
+                                  _fail,
+                                  _networkError,
+                                ),
                               ],
                             ),
                           ),
@@ -242,7 +249,11 @@ class _IotLoginPageState extends State<IotLoginPage> {
     );
   }
 
-  Widget _showFailLoginMessage(bool isVendor, bool isFail) {
+  Widget _showFailLoginMessage(
+    bool isVendor,
+    bool isFail,
+    bool isNetworkError,
+  ) {
     if (isVendor)
       return Padding(
         padding: const EdgeInsets.only(top: 18),
@@ -263,7 +274,7 @@ class _IotLoginPageState extends State<IotLoginPage> {
           },
         ),
       );
-    if (isFail)
+    if (isFail || isNetworkError)
       return Padding(
         child: Container(
           width: double.infinity,
@@ -274,7 +285,9 @@ class _IotLoginPageState extends State<IotLoginPage> {
             border: Border.all(color: Colors.amber.withValues(alpha: 0.35)),
           ),
           child: Text(
-            'LỖI XÁC THỰC',
+            isNetworkError
+                ? 'LỖI KẾT NỐI GOOGLE. KIỂM TRA INTERNET / GOOGLE PLAY SERVICES'
+                : 'LỖI XÁC THỰC',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 38.sp,

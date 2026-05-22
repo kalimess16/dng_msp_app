@@ -68,7 +68,7 @@ class IotDetailContentReportsStream {
             : oldLength *
             0.027.sw *
             0.77 *
-            MediaQuery.of(context).textScaleFactor);
+            MediaQuery.textScalerOf(context).scale(1));
         customCellWidth.putIfAbsent(i, () => cellWidth);
       }
       _isRefreshed = true;

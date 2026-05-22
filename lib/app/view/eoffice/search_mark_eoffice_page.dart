@@ -45,7 +45,7 @@ class _SearchMarkEofficePageState extends State<SearchMarkEofficePage> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
+    return IotPopScope(
       child: Scaffold(
         appBar: IotAppBar().build(context, false, 'Tìm VB tự phân loại'),
         body: FutureBuilder(

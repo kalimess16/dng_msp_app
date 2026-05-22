@@ -53,6 +53,11 @@ class IotAccountStream {
     } catch (ex, s) {
       print(ex);
       print(s);
+      final errorMessage = ex.toString().toLowerCase();
+      if (errorMessage.contains('network_error') ||
+          errorMessage.contains('apiexception: 7')) {
+        return LOGIN_NETWORK_ERROR_KEY;
+      }
     }
     return LOGIN_FAIL_KEY;
   }

@@ -24,7 +24,7 @@ class IotListManualReportsPage extends StatefulWidget {
 class _IotListManualReportsPageState extends State<IotListManualReportsPage> {
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
+    return IotPopScope(
       child: Scaffold(
         appBar: IotAppBar().build(context, true, widget.title),
         body: _buildBodyPage(),

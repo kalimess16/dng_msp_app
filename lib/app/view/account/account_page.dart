@@ -13,7 +13,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 class IotAccountPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
+    return IotPopScope(
       child: Scaffold(
         appBar: IotAppBar().build(context, true, 'TÀI KHOẢN ĐĂNG NHẬP'),
         backgroundColor: const Color(0xFFF4F8F5),
@@ -122,7 +122,7 @@ class IotAccountPage extends StatelessWidget {
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        return WillPopScope(
+        return IotPopScope(
           child: SimpleDialog(
             contentPadding: EdgeInsets.zero,
             titlePadding: EdgeInsets.zero,
