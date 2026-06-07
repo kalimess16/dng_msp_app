@@ -22,7 +22,7 @@ let package = Package(
         .package(name: "path_provider_foundation", path: "../.packages/path_provider_foundation-2.5.1"),
         .package(name: "google_sign_in_ios", path: "../.packages/google_sign_in_ios-5.9.0"),
         .package(name: "flutter_local_notifications", path: "../.packages/flutter_local_notifications-21.0.0"),
-        .package(name: "device_info_plus", path: "../.packages/device_info_plus-13.1.0"),
+        .package(name: "device_info_plus", path: "../.packages/device_info_plus"),
         .package(name: "connectivity_plus", path: "../.packages/connectivity_plus-6.1.5"),
         .package(name: "FlutterFramework", path: "../.packages/FlutterFramework")
     ],
