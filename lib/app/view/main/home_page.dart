@@ -23,7 +23,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:wakelock/wakelock.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:provider/provider.dart';
 
 class IotHomePage extends StatefulWidget {
@@ -57,7 +57,7 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    Wakelock.enable();
+    WakelockPlus.enable();
     IotUtility().checkInternetConnection(context);
     IotBottomNavigatorBar.selectedIotBottomNavigatorBar = 0;
     return IotPopScope(
