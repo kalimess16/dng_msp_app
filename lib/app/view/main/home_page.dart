@@ -260,17 +260,15 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
               builder: (context, constraints) {
                 final isLandscape =
                     MediaQuery.of(context).orientation == Orientation.landscape;
-                final wideMenu = constraints.maxWidth >= 420;
+                final crossAxisCount = isLandscape
+                    ? 4
+                    : constraints.maxWidth >= 700
+                    ? 3
+                    : 2;
                 final sidePadding = isLandscape
-                    ? 24.0
-                    : wideMenu
-                    ? 80.0
-                    : 40.0;
-                final itemRatio = isLandscape
-                    ? 1.35
-                    : wideMenu
-                    ? 1.15
-                    : 1.05;
+                    ? (constraints.maxWidth * 0.04).clamp(16.0, 28.0)
+                    : (constraints.maxWidth * 0.07).clamp(20.0, 36.0);
+                final itemRatio = isLandscape ? 1.28 : 1.08;
                 return GridView.count(
                   scrollDirection: Axis.vertical,
                   shrinkWrap: true,
@@ -280,9 +278,9 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
                     sidePadding,
                     12,
                   ),
-                  crossAxisCount: isLandscape ? 4 : 2,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
                   childAspectRatio: itemRatio,
                   children: IotRoutes.iotListApps.values
                       .map(
@@ -507,19 +505,24 @@ class _HomeActionCard extends StatelessWidget {
         final horizontalPadding = compact ? 8.0 : 10.0;
         final verticalPadding = compact ? 6.0 : 10.0;
         final gap = compact ? 4.0 : 6.0;
-        final minTitleHeight = compact ? 28.0 : 34.0;
+        final minTitleHeight = compact ? 30.0 : 42.0;
         final contentHeight = (cardHeight - verticalPadding * 2)
             .clamp(0.0, double.infinity)
             .toDouble();
-        final maxIconBoxSize = (contentHeight - gap - minTitleHeight)
-            .clamp(0.0, compact ? 44.0 : 58.0)
-            .toDouble();
-        final iconBoxSize = maxIconBoxSize < (compact ? 30.0 : 38.0)
+        final iconBoxByHeight = contentHeight - gap - minTitleHeight;
+        final iconBoxByWidth = constraints.maxWidth * (compact ? 0.46 : 0.44);
+        final maxIconBoxSize =
+            (iconBoxByHeight < iconBoxByWidth
+                    ? iconBoxByHeight
+                    : iconBoxByWidth)
+                .clamp(0.0, compact ? 54.0 : 76.0)
+                .toDouble();
+        final iconBoxSize = maxIconBoxSize < (compact ? 34.0 : 52.0)
             ? maxIconBoxSize
             : maxIconBoxSize
-                  .clamp(compact ? 30.0 : 38.0, compact ? 44.0 : 58.0)
+                  .clamp(compact ? 34.0 : 52.0, compact ? 54.0 : 76.0)
                   .toDouble();
-        final iconSize = (iconBoxSize * 0.68).clamp(0.0, compact ? 30.0 : 40.0);
+        final iconSize = (iconBoxSize * 0.74).clamp(0.0, compact ? 40.0 : 56.0);
         final titleFontSize = compact ? 14.0 : SP_COMMON_FONT_SIZE.sp;
         final titleWidth = (constraints.maxWidth - horizontalPadding * 2)
             .clamp(0.0, double.infinity)

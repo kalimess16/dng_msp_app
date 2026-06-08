@@ -5,57 +5,70 @@ import 'package:lazy_data_table/lazy_data_table.dart';
 
 class IotContentReportPage {
   Widget buildLazyTable(BuildContext context, dynamic iotReportsViewModel) {
-    const Color _stickyColor = Color.fromRGBO(110, 110, 110, 250);
+    const Color _stickyColor = Color.fromARGB(255, 224, 242, 230);
     double _stickyWidth = iotReportsViewModel.stickyWidth;
     return LazyDataTable(
       rows: iotReportsViewModel.titleRows.length,
       columns: iotReportsViewModel.titleColumns.length,
       tableTheme: LazyDataTableTheme(
-          columnHeaderBorder: Border.all(color: IOT_GRID_BORDER_COLOR),
-          rowHeaderBorder: Border.all(color: IOT_GRID_BORDER_COLOR, width: 0.8),
-          cornerBorder: Border.all(color: IOT_GRID_BORDER_COLOR, width: 0.8),
-          cellBorder: Border.all(color: IOT_GRID_BORDER_COLOR, width: 0.8),
-          alternateCellBorder: Border.all(color: IOT_GRID_BORDER_COLOR, width: 0.8),
-          columnHeaderColor: _stickyColor,
-          rowHeaderColor: _stickyColor,
-          cornerColor: _stickyColor,
-          alternateRow: false,
-          alternateColumn: false,
+        columnHeaderBorder: Border.all(color: IOT_GRID_BORDER_COLOR),
+        rowHeaderBorder: Border.all(color: IOT_GRID_BORDER_COLOR, width: 0.8),
+        cornerBorder: Border.all(color: IOT_GRID_BORDER_COLOR, width: 0.8),
+        cellBorder: Border.all(color: IOT_GRID_BORDER_COLOR, width: 0.8),
+        alternateCellBorder: Border.all(
+          color: IOT_GRID_BORDER_COLOR,
+          width: 0.8,
+        ),
+        columnHeaderColor: _stickyColor,
+        rowHeaderColor: _stickyColor,
+        cornerColor: _stickyColor,
+        alternateRow: false,
+        alternateColumn: false,
       ),
       tableDimensions: LazyDataTableDimensions(
         customCellWidth: iotReportsViewModel.customCellWidth ?? {},
-        leftHeaderWidth:
-            (iotReportsViewModel.stickyWidth == 0 ? 0.45.sw : _stickyWidth.sw),
+        leftHeaderWidth: (iotReportsViewModel.stickyWidth == 0
+            ? 0.45.sw
+            : _stickyWidth.sw),
         rightHeaderWidth: 0.085.sh,
         cellWidth: 0.25.sw,
-        cellHeight: 0.075.sh
+        cellHeight: 0.075.sh,
       ),
       topLeftCornerWidget: Center(
-          child: RichText(
-        text: TextSpan(
+        child: RichText(
+          text: TextSpan(
             text: iotReportsViewModel.stickyLegend,
             style: TextStyle(
-                color: Colors.black,
-                fontSize: 37.sp,
-                fontWeight: FontWeight.bold)),
-        textAlign: TextAlign.center,
-        softWrap: true,
-      )),
+              color: Colors.black,
+              fontSize: 37.sp,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          textAlign: TextAlign.center,
+          softWrap: true,
+        ),
+      ),
       topHeaderBuilder: (i) => Center(
-          child: RichText(
-        text: TextSpan(
+        child: RichText(
+          text: TextSpan(
             text: iotReportsViewModel.titleColumns[i],
             style: TextStyle(
-                color: Colors.black,
-                fontSize: 37.sp,
-                fontWeight: FontWeight.bold)),
-        textAlign: TextAlign.center,
-        softWrap: true,
-      )),
+              color: Colors.black,
+              fontSize: 37.sp,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          textAlign: TextAlign.center,
+          softWrap: true,
+        ),
+      ),
       leftHeaderBuilder: (i) {
         return Container(
-          child: showFullContentCell(context, iotReportsViewModel.titleRows[i],
-              TextStyle(fontSize: 37.sp)),
+          child: showFullContentCell(
+            context,
+            iotReportsViewModel.titleRows[i],
+            TextStyle(fontSize: 37.sp),
+          ),
           padding: EdgeInsets.only(left: 5),
           alignment: Alignment.centerLeft,
         );
@@ -92,47 +105,47 @@ class IotContentReportPage {
           }
         }
         return Container(
-          child: Text(_cellValue,
-              style: TextStyle(
-                  color: _color,
-                  fontWeight: (_color != Colors.black87
-                      ? FontWeight.bold
-                      : FontWeight.normal),
-                  fontSize: 37.sp)),
+          child: Text(
+            _cellValue,
+            style: TextStyle(
+              color: _color,
+              fontWeight: (_color != Colors.black87
+                  ? FontWeight.bold
+                  : FontWeight.normal),
+              fontSize: 37.sp,
+            ),
+          ),
           alignment: _alignment,
           padding: _padding,
         );
       },
     );
-
   }
 
   Widget showFullContentCell(
-      BuildContext context, String content, TextStyle textStyle) {
+    BuildContext context,
+    String content,
+    TextStyle textStyle,
+  ) {
     return GestureDetector(
-        child: Text(content, style: textStyle),
-        onDoubleTap: () {
-          showDialog(
-            context: context,
-            barrierDismissible: true,
-            builder: (BuildContext context) => AlertDialog(
-              content: SingleChildScrollView(
-                child: Text(
-                  content,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              actions: <Widget>[
-                TextButton(
-                  child: Text(
-                    'OK',
-                    style: TextStyle(color: IOT_BG_COLOR),
-                  ),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
+      child: Text(content, style: textStyle),
+      onDoubleTap: () {
+        showDialog(
+          context: context,
+          barrierDismissible: true,
+          builder: (BuildContext context) => AlertDialog(
+            content: SingleChildScrollView(
+              child: Text(content, textAlign: TextAlign.center),
             ),
-          );
-        });
+            actions: <Widget>[
+              TextButton(
+                child: Text('OK', style: TextStyle(color: IOT_BG_COLOR)),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
