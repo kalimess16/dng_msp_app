@@ -32,14 +32,15 @@ class IotHomePage extends StatefulWidget {
 }
 
 class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
-  late final StreamSubscription<RemoteMessage> _iosOnMessageOpenedAppListener;
-  late final StreamSubscription<RemoteMessage> _onMessageListener;
+  StreamSubscription<RemoteMessage>? _iosOnMessageOpenedAppListener;
+  StreamSubscription<RemoteMessage>? _onMessageListener;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    initIotFirebaseMessage();
-    configIotFirebaseMessage();
+    unawaited(_initNotifications());
+    unawaited(configIotFirebaseMessage());
   }
 
   @override
@@ -50,9 +51,18 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
     }
   }
 
-  Future<bool> _clearAllNotificationOnTray() async {
+  Future<void> _initNotifications() async {
+    try {
+      await initIotFirebaseMessage();
+      await _clearAllNotificationOnTray();
+    } catch (e, s) {
+      debugPrint('IOT notification init error: $e');
+      debugPrintStack(stackTrace: s);
+    }
+  }
+
+  Future<void> _clearAllNotificationOnTray() async {
     await flutterLocalNotificationsPlugin.cancelAll();
-    return true;
   }
 
   @override
@@ -63,19 +73,11 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
     return IotPopScope(
       child: Scaffold(
         backgroundColor: IOT_BG_COLOR,
-        body: FutureBuilder(
-          future: _clearAllNotificationOnTray(),
-          builder: ((context, snapshot) {
-            if (snapshot.hasData)
-              return Column(
-                children: [
-                  _buildIotMainAppBar(),
-                  Expanded(child: _buildIotAppItems()),
-                ],
-              );
-            else
-              return SizedBox();
-          }),
+        body: Column(
+          children: [
+            _buildIotMainAppBar(),
+            Expanded(child: _buildIotAppItems()),
+          ],
         ),
         bottomNavigationBar: IotBottomNavigatorBar(),
       ),
@@ -85,8 +87,8 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    _iosOnMessageOpenedAppListener.cancel();
-    _onMessageListener.cancel();
+    _iosOnMessageOpenedAppListener?.cancel();
+    _onMessageListener?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -239,15 +241,22 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
     return FutureBuilder(
       future: IotSharedPreferences().get(),
       builder: ((context, snapshot) {
+        if (snapshot.hasError) {
+          return _buildIotAppItemsSurface(
+            IotExceptionPage(exception: snapshot.error),
+          );
+        }
+
         if (snapshot.hasData) {
           List<String> prefs = snapshot.data as List<String>;
-          if (prefs.isEmpty)
-            return IotExceptionPage(
-              exception: IotException(code: 403, error: 'Y'),
+          if (prefs.isEmpty) {
+            return _buildIotAppItemsSurface(
+              IotExceptionPage(exception: IotException(code: 403, error: 'N')),
             );
+          }
 
-          return Container(
-            child: LayoutBuilder(
+          return _buildIotAppItemsSurface(
+            LayoutBuilder(
               builder: (context, constraints) {
                 final isLandscape =
                     MediaQuery.of(context).orientation == Orientation.landscape;
@@ -258,10 +267,10 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
                     ? 80.0
                     : 40.0;
                 final itemRatio = isLandscape
-                    ? 1.80
+                    ? 1.35
                     : wideMenu
-                    ? 1.62
-                    : 1.40;
+                    ? 1.15
+                    : 1.05;
                 return GridView.count(
                   scrollDirection: Axis.vertical,
                   shrinkWrap: true,
@@ -284,18 +293,25 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
                 );
               },
             ),
-            //height: 0.8.sh,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(30),
-                topRight: Radius.circular(30),
-              ),
-            ),
           );
         }
-        return SizedBox();
+
+        return _buildIotAppItemsSurface(const SizedBox());
       }),
+    );
+  }
+
+  Widget _buildIotAppItemsSurface(Widget child) {
+    return Container(
+      child: child,
+      //height: 0.8.sh,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(30),
+          topRight: Radius.circular(30),
+        ),
+      ),
     );
   }
 
@@ -314,7 +330,7 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
     return false;
   }
 
-  void initIotFirebaseMessage() async {
+  Future<void> initIotFirebaseMessage() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('ic_stat_name_msp'); //ic_stat_name
     flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
@@ -345,74 +361,82 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
         ?.requestPermissions(alert: true, badge: true, sound: true);
   }
 
-  void configIotFirebaseMessage() async {
-    await Firebase.initializeApp();
+  Future<void> configIotFirebaseMessage() async {
+    try {
+      await Firebase.initializeApp();
 
-    await FirebaseMessaging.instance.getInitialMessage();
-    //print(await FirebaseMessaging.instance.getToken());
+      await FirebaseMessaging.instance.getInitialMessage();
+      //print(await FirebaseMessaging.instance.getToken());
 
-    // Only for Android
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-    // Android & IOS
-    _onMessageListener = FirebaseMessaging.onMessage.listen((
-      RemoteMessage message,
-    ) async {
-      //print("ON MESSAGE1 ${message.data}");
-      switch (message.data['messageType']) {
-        case 'IM':
-          if (message.data['title'] != null) {
-            context
-                .read<IotListInternalMessageStream>()
-                .parseIotFirebaseMessage(message.data);
-            List<dynamic> originals = await context
-                .read<IotReplyInternalMessageStream>()
-                .parseIotReplyFirebaseMessage(message.data);
-            if (originals.isNotEmpty &&
-                IotStaticVariable.iotOnReplyInternalMessagePage)
-              await context
+      // Only for Android
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      // Android & IOS
+      _onMessageListener = FirebaseMessaging.onMessage.listen((
+        RemoteMessage message,
+      ) async {
+        //print("ON MESSAGE1 ${message.data}");
+        switch (message.data['messageType']) {
+          case 'IM':
+            if (message.data['title'] != null) {
+              context
                   .read<IotListInternalMessageStream>()
-                  .readInternalMessage(originals[0], originals[1]);
-          } else
-            context
-                .read<IotListInternalMessageStream>()
-                .updateIotFirebaseMessage(message.data);
-          break;
-        case 'AR':
-          await context.read<IotListAutoReportStream>().parseIotFirebaseMessage(
-            message.data,
-          );
-          break;
-      }
-    });
+                  .parseIotFirebaseMessage(message.data);
+              List<dynamic> originals = await context
+                  .read<IotReplyInternalMessageStream>()
+                  .parseIotReplyFirebaseMessage(message.data);
+              if (originals.isNotEmpty &&
+                  IotStaticVariable.iotOnReplyInternalMessagePage)
+                await context
+                    .read<IotListInternalMessageStream>()
+                    .readInternalMessage(originals[0], originals[1]);
+            } else
+              context
+                  .read<IotListInternalMessageStream>()
+                  .updateIotFirebaseMessage(message.data);
+            break;
+          case 'AR':
+            await context
+                .read<IotListAutoReportStream>()
+                .parseIotFirebaseMessage(message.data);
+            break;
+        }
+      });
 
-    // IOS when click notification
-    _iosOnMessageOpenedAppListener = FirebaseMessaging.onMessageOpenedApp
-        .listen((RemoteMessage message) async {
-          //print('ON MESSAGE OPENED APP ${message.data}'
-          Navigator.popUntil(context, ModalRoute.withName(IotRoutes.HOME_PAGE));
-          switch (message.data['messageType']) {
-            case 'IM':
-              await IotNavigatorInternalMessage().onTap(
-                context,
-                int.tryParse(message.data['originalId']) ?? 0,
-                message.data['originalCreator'],
-                message.data['groupName'],
-                true,
-                '',
-              );
-              break;
-            case 'AR':
-              await IotNavigatorAutoReportPage().onTap(
-                context,
-                int.tryParse(message.data['id']) ?? 0,
-                message.data['reportType'],
-                message.data['reportDate'],
-                message.data['title'],
-                true,
-              );
-              break;
-          }
-        });
+      // IOS when click notification
+      _iosOnMessageOpenedAppListener = FirebaseMessaging.onMessageOpenedApp
+          .listen((RemoteMessage message) async {
+            //print('ON MESSAGE OPENED APP ${message.data}'
+            Navigator.popUntil(
+              context,
+              ModalRoute.withName(IotRoutes.HOME_PAGE),
+            );
+            switch (message.data['messageType']) {
+              case 'IM':
+                await IotNavigatorInternalMessage().onTap(
+                  context,
+                  int.tryParse(message.data['originalId']) ?? 0,
+                  message.data['originalCreator'],
+                  message.data['groupName'],
+                  true,
+                  '',
+                );
+                break;
+              case 'AR':
+                await IotNavigatorAutoReportPage().onTap(
+                  context,
+                  int.tryParse(message.data['id']) ?? 0,
+                  message.data['reportType'],
+                  message.data['reportDate'],
+                  message.data['title'],
+                  true,
+                );
+                break;
+            }
+          });
+    } catch (e, s) {
+      debugPrint('IOT Firebase message config error: $e');
+      debugPrintStack(stackTrace: s);
+    }
   }
 
   // Android when click notification
@@ -473,52 +497,89 @@ class _HomeActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconBoxSize = compact ? 44.0 : 62.0;
-    final iconSize = compact ? 30.0 : 40.0;
-    final titleFontSize = compact ? 14.0 : SP_COMMON_FONT_SIZE.sp;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardHeight = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : compact
+            ? 96.0
+            : 118.0;
+        final horizontalPadding = compact ? 8.0 : 10.0;
+        final verticalPadding = compact ? 6.0 : 10.0;
+        final gap = compact ? 4.0 : 6.0;
+        final minTitleHeight = compact ? 28.0 : 34.0;
+        final contentHeight = (cardHeight - verticalPadding * 2)
+            .clamp(0.0, double.infinity)
+            .toDouble();
+        final maxIconBoxSize = (contentHeight - gap - minTitleHeight)
+            .clamp(0.0, compact ? 44.0 : 58.0)
+            .toDouble();
+        final iconBoxSize = maxIconBoxSize < (compact ? 30.0 : 38.0)
+            ? maxIconBoxSize
+            : maxIconBoxSize
+                  .clamp(compact ? 30.0 : 38.0, compact ? 44.0 : 58.0)
+                  .toDouble();
+        final iconSize = (iconBoxSize * 0.68).clamp(0.0, compact ? 30.0 : 40.0);
+        final titleFontSize = compact ? 14.0 : SP_COMMON_FONT_SIZE.sp;
+        final titleWidth = (constraints.maxWidth - horizontalPadding * 2)
+            .clamp(0.0, double.infinity)
+            .toDouble();
 
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      elevation: 2,
-      shadowColor: Colors.black.withValues(alpha: 0.16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: onTap,
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: compact ? 6 : 8,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: iconBoxSize,
-                height: iconBoxSize,
-                decoration: BoxDecoration(
-                  color: IOT_BG_COLOR.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(value[2], size: iconSize, color: IOT_BG_COLOR),
+        return Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          elevation: 2,
+          shadowColor: Colors.black.withValues(alpha: 0.16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: onTap,
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: verticalPadding,
               ),
-              SizedBox(height: compact ? 4 : 6),
-              Text(
-                value[0],
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: titleFontSize,
-                  height: 1.12,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: iconBoxSize,
+                    height: iconBoxSize,
+                    decoration: BoxDecoration(
+                      color: IOT_BG_COLOR.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(value[2], size: iconSize, color: IOT_BG_COLOR),
+                  ),
+                  SizedBox(height: gap),
+                  Expanded(
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.center,
+                        child: SizedBox(
+                          width: titleWidth,
+                          child: Text(
+                            value[0],
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: titleFontSize,
+                              height: 1.12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

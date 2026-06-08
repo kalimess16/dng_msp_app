@@ -8,7 +8,6 @@ import 'package:dngmsp/app/view/widget/app_bar.dart';
 import 'package:dngmsp/app/viewmodel/account/account_stream.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const _loginGradientTop = Color(0xFFE7F3EC);
@@ -24,7 +23,6 @@ const _loginAccentColor = Color(0xFFB8D84E);
 const _loginWarningBgColor = Color(0xFFFFF7E4);
 const _loginWarningBorderColor = Color(0xFFE5C76A);
 const _loginWarningTextColor = Color(0xFF7A4A00);
-const _loginFooterColor = Color(0xFF00772F);
 
 class IotLoginPage extends StatefulWidget {
   @override
@@ -36,56 +34,79 @@ class _IotLoginPageState extends State<IotLoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return IotPopScope(
-      child: Scaffold(
-        backgroundColor: _loginGradientBottom,
-        body: StreamBuilder(
-          stream: _loginIotViewModel.loginIotStream,
-          builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-            final loginStatus = snapshot.data;
-            if (loginStatus == LOGIN_SUCCESS_KEY) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) return;
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  IotRoutes.HOME_PAGE,
-                  (route) => false,
-                );
-              });
-            }
+    final mediaQuery = MediaQuery.of(context);
+    final systemTextScale = MediaQuery.textScalerOf(context).scale(1);
+    final textScale = systemTextScale > 1.25 ? 1.25 : systemTextScale;
 
-            return Container(
-              width: 1.sw,
-              height: 1.sh,
-              decoration: _buildBoxDecoration(),
-              child: SafeArea(
-                bottom: false,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 28,
-                      ),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight - 56,
-                        ),
-                        child: Center(
-                          child: _buildLoginCard(
-                            isWaiting: loginStatus == LOGIN_AUTH_KEY,
-                            loginStatus: loginStatus,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+    return IotPopScope(
+      child: MediaQuery(
+        data: mediaQuery.copyWith(textScaler: TextScaler.linear(textScale)),
+        child: Scaffold(
+          resizeToAvoidBottomInset: false,
+          backgroundColor: _loginGradientBottom,
+          body: StreamBuilder(
+            stream: _loginIotViewModel.loginIotStream,
+            builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+              final loginStatus = snapshot.data;
+              if (loginStatus == LOGIN_SUCCESS_KEY) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    IotRoutes.HOME_PAGE,
+                    (route) => false,
+                  );
+                });
+              }
+
+              return SizedBox.expand(
+                child: Container(
+                  decoration: _buildBoxDecoration(),
+                  child: SafeArea(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final minContentHeight = (constraints.maxHeight - 96)
+                            .clamp(0.0, double.infinity)
+                            .toDouble();
+
+                        return Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            SingleChildScrollView(
+                              padding: const EdgeInsets.fromLTRB(
+                                20,
+                                28,
+                                20,
+                                72,
+                              ),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  minHeight: minContentHeight,
+                                ),
+                                child: Center(
+                                  child: _buildLoginCard(
+                                    isWaiting: loginStatus == LOGIN_AUTH_KEY,
+                                    loginStatus: loginStatus,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              left: 15,
+                              right: 15,
+                              bottom: 8,
+                              child: _buildFooter(),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
-        bottomNavigationBar: _bottomNavBar(),
       ),
       onWillPop: () async => await _onWillIotPop(context),
     );
@@ -163,23 +184,31 @@ class _IotLoginPageState extends State<IotLoginPage> {
           child: Image.asset(IOT_IMAGE, fit: BoxFit.contain),
         ),
         const SizedBox(height: 18),
-        Text(
-          IOT_APP_NAME,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            color: _loginTextColor,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            IOT_APP_NAME,
+            maxLines: 1,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w800,
+              color: _loginTextColor,
+            ),
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          IOT_DESCRIPTION,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: _loginMutedTextColor,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            IOT_DESCRIPTION,
+            maxLines: 1,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: _loginMutedTextColor,
+            ),
           ),
         ),
         Container(
@@ -197,8 +226,9 @@ class _IotLoginPageState extends State<IotLoginPage> {
 
   Widget _buildWaitingState() {
     return Container(
-      height: 54,
       width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 54),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: _loginButtonColor,
@@ -207,8 +237,8 @@ class _IotLoginPageState extends State<IotLoginPage> {
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          SizedBox(
+        children: [
+          const SizedBox(
             width: 22,
             height: 22,
             child: CircularProgressIndicator(
@@ -216,13 +246,19 @@ class _IotLoginPageState extends State<IotLoginPage> {
               strokeWidth: 2.6,
             ),
           ),
-          SizedBox(width: 12),
-          Text(
-            'Đang xác thực...',
-            style: TextStyle(
-              color: _loginTextColor,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
+          const SizedBox(width: 12),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Đang xác thực...',
+                maxLines: 1,
+                style: const TextStyle(
+                  color: _loginTextColor,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
         ],
@@ -267,35 +303,44 @@ class _IotLoginPageState extends State<IotLoginPage> {
   }) {
     return SizedBox(
       width: double.infinity,
-      height: 54,
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: _loginButtonColor,
-          foregroundColor: _loginTextColor,
-          elevation: 0,
-          side: const BorderSide(color: _loginButtonBorderColor),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-        ),
-        onPressed: onPressed,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset(iconPath, height: 26, width: 26),
-            const SizedBox(width: 12),
-            Flexible(
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: IOT_BG_COLOR,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 54),
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _loginButtonColor,
+            foregroundColor: _loginTextColor,
+            elevation: 0,
+            side: const BorderSide(color: _loginButtonBorderColor),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
             ),
-          ],
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+          ),
+          onPressed: onPressed,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(iconPath, height: 26, width: 26),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        color: IOT_BG_COLOR,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -365,6 +410,7 @@ class _IotLoginPageState extends State<IotLoginPage> {
               children: [
                 Text(
                   title,
+                  softWrap: true,
                   style: const TextStyle(
                     color: _loginWarningTextColor,
                     fontSize: 14,
@@ -374,6 +420,7 @@ class _IotLoginPageState extends State<IotLoginPage> {
                 const SizedBox(height: 3),
                 Text(
                   message,
+                  softWrap: true,
                   style: const TextStyle(
                     color: _loginWarningTextColor,
                     fontSize: 13,
@@ -394,49 +441,59 @@ class _IotLoginPageState extends State<IotLoginPage> {
       padding: const EdgeInsets.only(top: 18),
       child: SizedBox(
         width: double.infinity,
-        height: 52,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _loginWarningBgColor,
-            foregroundColor: _loginWarningTextColor,
-            elevation: 0,
-            side: const BorderSide(color: _loginWarningBorderColor),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 52),
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _loginWarningBgColor,
+              foregroundColor: _loginWarningTextColor,
+              elevation: 0,
+              side: const BorderSide(color: _loginWarningBorderColor),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'Nâng cấp phiên bản mới',
+                  maxLines: 1,
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+            onPressed: () async {
+              final url = Uri.parse(IOT_UPGRADE_APP_URL);
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Không nâng cấp được IOT')),
+                );
+              }
+            },
           ),
-          child: const Text(
-            'Nâng cấp phiên bản mới',
-            softWrap: true,
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-          ),
-          onPressed: () async {
-            final url = Uri.parse(IOT_UPGRADE_APP_URL);
-            if (await canLaunchUrl(url)) {
-              await launchUrl(url);
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Không nâng cấp được IOT')),
-              );
-            }
-          },
         ),
       ),
     );
   }
 
-  Widget _bottomNavBar() {
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 40, minHeight: 28),
-      alignment: Alignment.bottomRight,
-      padding: const EdgeInsets.only(right: 15, bottom: 8, top: 8),
-      color: _loginFooterColor,
-      child: Text(
-        IOT_AUTHOR,
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.88),
-          fontSize: 28.sp,
-          fontWeight: FontWeight.w600,
+  Widget _buildFooter() {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerRight,
+        child: Text(
+          IOT_AUTHOR,
+          maxLines: 1,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.88),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
