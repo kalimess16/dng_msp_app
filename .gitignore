@@ -31,6 +31,14 @@
 .pub/
 /build/
 
+# Vendored Flutter packages: keep runtime source only.
+third_party/**/.dart_tool/
+third_party/**/.gradle/
+third_party/**/build/
+third_party/**/example/
+third_party/**/test/
+third_party/**/pubspec.lock
+
 # Web related
 lib/generated_plugin_registrant.dart
 
