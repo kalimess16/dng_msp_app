@@ -346,11 +346,12 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
         await selectNotification(notificationResponse.payload);
       },
     );
-    await flutterLocalNotificationsPlugin
+    final androidNotifications = flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(notificationChannel);
+        >();
+    await androidNotifications?.createNotificationChannel(notificationChannel);
+    await androidNotifications?.requestNotificationsPermission();
 
     await flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
@@ -366,8 +367,6 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
       await FirebaseMessaging.instance.getInitialMessage();
       //print(await FirebaseMessaging.instance.getToken());
 
-      // Only for Android
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
       // Android & IOS
       _onMessageListener = FirebaseMessaging.onMessage.listen((
         RemoteMessage message,

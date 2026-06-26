@@ -22,6 +22,7 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
+  await _createAndroidNotificationChannel();
 
   var androidPlatformChannelSpecifics = AndroidNotificationDetails(
       notificationChannel.id,
@@ -75,4 +76,11 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
           payload: '$_notificationType~$_id~$_type~$_date~$_title');
       break;
   }
+}
+
+Future<void> _createAndroidNotificationChannel() async {
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(notificationChannel);
 }

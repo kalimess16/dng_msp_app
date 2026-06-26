@@ -6,8 +6,10 @@ import 'package:dngmsp/app/resource/color/app_colors.dart';
 import 'package:dngmsp/app/resource/routes.dart';
 import 'package:dngmsp/app/resource/string/app_strings.dart';
 import 'package:dngmsp/app/viewmodel/http_overrides.dart';
+import 'package:dngmsp/app/viewmodel/init_local_notification.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -15,6 +17,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   await IotSharedPreferences().get().then((prefs) {
     HttpOverrides.global = IotHttpOverrides();
