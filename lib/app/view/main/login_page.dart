@@ -10,16 +10,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-const _loginGradientTop = Color(0xFFE7F3EC);
-const _loginGradientMid = Color(0xFF7FC796);
-const _loginGradientBottom = Color(0xFF007A30);
-const _loginSurfaceColor = Color(0xFFF4FBF6);
-const _loginLogoSurfaceColor = Color(0xFFE4F2E8);
-const _loginButtonColor = Color(0xFFF8FCF9);
-const _loginButtonBorderColor = Color(0xFFC8E2D1);
-const _loginTextColor = Color(0xFF063D22);
-const _loginMutedTextColor = Color(0xFF557363);
-const _loginAccentColor = Color(0xFFB8D84E);
+const _loginGradientTop = Color(0xFFC9DFD0);
+const _loginGradientMid = Color(0xFF79B98A);
+const _loginGradientBottom = Color(0xFF23884D);
+const _loginSurfaceColor = Color(0xFFEDF5F0);
+const _loginSurfaceBorderColor = Color(0xFFD4E5DA);
+const _loginButtonColor = Color(0xFFEAF3EE);
+const _loginButtonBorderColor = Color(0xFFB7D4C1);
+const _loginTextColor = Color(0xFF064829);
+const _loginMutedTextColor = Color(0xFF587465);
+const _loginAccentColor = Color(0xFF8FBF35);
 const _loginWarningBgColor = Color(0xFFFFF7E4);
 const _loginWarningBorderColor = Color(0xFFE5C76A);
 const _loginWarningTextColor = Color(0xFF7A4A00);
@@ -146,13 +146,14 @@ class _IotLoginPageState extends State<IotLoginPage> {
       constraints: const BoxConstraints(maxWidth: 380),
       padding: const EdgeInsets.fromLTRB(24, 26, 24, 22),
       decoration: BoxDecoration(
-        color: _loginSurfaceColor.withValues(alpha: 0.98),
+        color: _loginSurfaceColor.withValues(alpha: 0.96),
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _loginSurfaceBorderColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.16),
-            blurRadius: 26,
-            offset: const Offset(0, 14),
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -172,16 +173,14 @@ class _IotLoginPageState extends State<IotLoginPage> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Container(
+        SizedBox(
           height: 96,
           width: 96,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: _loginLogoSurfaceColor,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: IOT_BG_COLOR.withValues(alpha: 0.12)),
+          child: Image.asset(
+            IOT_IMAGE,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
           ),
-          child: Image.asset(IOT_IMAGE, fit: BoxFit.contain),
         ),
         const SizedBox(height: 18),
         FittedBox(
@@ -331,7 +330,7 @@ class _IotLoginPageState extends State<IotLoginPage> {
                       title,
                       maxLines: 1,
                       style: const TextStyle(
-                        color: IOT_BG_COLOR,
+                        color: _loginTextColor,
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                       ),
