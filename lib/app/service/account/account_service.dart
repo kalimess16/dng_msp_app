@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dngmsp/app/model/exception.dart';
 import 'package:dngmsp/app/model/shared_preferences.dart';
 import 'package:dngmsp/app/resource/string/app_strings.dart';
+import 'package:dngmsp/app/viewmodel/init_local_notification.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -16,6 +17,8 @@ class IotAccountService {
   ) async {
     String fcmToken = '';
     try {
+      await initializeIotLocalNotifications();
+      await requestIotNotificationPermissions();
       fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
     } catch (e, s) {
       debugPrint('IOT login: cannot get FCM token: $e');

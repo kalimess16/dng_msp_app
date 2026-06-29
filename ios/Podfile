@@ -34,6 +34,29 @@ target 'Runner' do
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
+def patch_firebase_auth_xros_availability(pods_root)
+  federated_auth_provider = File.join(
+    pods_root,
+    'FirebaseAuth',
+    'FirebaseAuth',
+    'Sources',
+    'Public',
+    'FirebaseAuth',
+    'FIRFederatedAuthProvider.h'
+  )
+  return unless File.exist?(federated_auth_provider)
+
+  contents = File.read(federated_auth_provider)
+  patched = contents.gsub(
+    /#if defined\(TARGET_OS_XR\)(?: && TARGET_OS_XR)*/,
+    '#if defined(TARGET_OS_XR) && TARGET_OS_XR'
+  )
+  if patched != contents
+    File.chmod(File.stat(federated_auth_provider).mode | 0200, federated_auth_provider)
+    File.write(federated_auth_provider, patched)
+  end
+end
+
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
@@ -41,4 +64,5 @@ post_install do |installer|
       config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
     end
   end
+  patch_firebase_auth_xros_availability(installer.sandbox.root.to_s)
 end

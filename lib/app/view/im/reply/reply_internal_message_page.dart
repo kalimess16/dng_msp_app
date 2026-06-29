@@ -56,7 +56,7 @@ class _IotReplyInternalMessagePageState
   late final TextEditingController _controller;
   late final IotEmojiStream _emojiStream;
   late final IotEmotionStream _emotionStream;
-  late final String _username;
+  String _username = '';
   final Map<String, List<IotDownloadFile>> _messageFilesCache = {};
 
   bool get _isLandscape =>
@@ -491,8 +491,8 @@ class _IotReplyInternalMessagePageState
           ).then((value) async {
             if (positionStream.positions
                 .where((element) => element.selected ?? false)
-                .isNotEmpty)
-              await showDialog(
+                .isNotEmpty) {
+              final forwarded = await showDialog<bool>(
                 context: context,
                 barrierDismissible: false,
                 builder: (context) {
@@ -511,6 +511,11 @@ class _IotReplyInternalMessagePageState
                   );
                 },
               );
+              if (forwarded == true && mounted) {
+                _messageFilesCache.clear();
+                setState(() {});
+              }
+            }
           });
       },
       child: Column(

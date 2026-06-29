@@ -21,7 +21,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:provider/provider.dart';
@@ -39,8 +38,7 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    unawaited(_initNotifications());
-    unawaited(configIotFirebaseMessage());
+    unawaited(_setupNotificationsAndMessaging());
   }
 
   @override
@@ -63,6 +61,11 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
 
   Future<void> _clearAllNotificationOnTray() async {
     await flutterLocalNotificationsPlugin.cancelAll();
+  }
+
+  Future<void> _setupNotificationsAndMessaging() async {
+    await _initNotifications();
+    await configIotFirebaseMessage();
   }
 
   @override
@@ -329,42 +332,36 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
   }
 
   Future<void> initIotFirebaseMessage() async {
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('ic_stat_name_msp'); //ic_stat_name
-    flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails();
-    const DarwinInitializationSettings initializationSettingsIOS =
-        DarwinInitializationSettings();
-    final InitializationSettings initializationSettings =
-        InitializationSettings(
-          android: initializationSettingsAndroid,
-          iOS: initializationSettingsIOS,
-        );
-
-    await flutterLocalNotificationsPlugin.initialize(
-      settings: initializationSettings,
+    final notificationLaunchDetails = await flutterLocalNotificationsPlugin
+        .getNotificationAppLaunchDetails();
+    await initializeIotLocalNotifications(
       onDidReceiveNotificationResponse: (notificationResponse) async {
         await selectNotification(notificationResponse.payload);
       },
     );
-    final androidNotifications = flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >();
-    await androidNotifications?.createNotificationChannel(notificationChannel);
-    await androidNotifications?.requestNotificationsPermission();
+    await requestIotNotificationPermissions();
 
-    await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin
-        >()
-        ?.requestPermissions(alert: true, badge: true, sound: true);
+    final launchPayload =
+        notificationLaunchDetails?.notificationResponse?.payload;
+    if ((notificationLaunchDetails?.didNotificationLaunchApp ?? false) &&
+        launchPayload != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(selectNotification(launchPayload));
+      });
+    }
   }
 
   Future<void> configIotFirebaseMessage() async {
     try {
       await Firebase.initializeApp();
 
-      await FirebaseMessaging.instance.getInitialMessage();
+      final initialMessage = await FirebaseMessaging.instance
+          .getInitialMessage();
+      if (initialMessage != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) unawaited(_openRemoteMessage(initialMessage));
+        });
+      }
       //print(await FirebaseMessaging.instance.getToken());
 
       // Android & IOS
@@ -372,6 +369,7 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
         RemoteMessage message,
       ) async {
         //print("ON MESSAGE1 ${message.data}");
+        await showIotLocalNotification(message);
         switch (message.data['messageType']) {
           case 'IM':
             if (message.data['title'] != null) {
@@ -403,36 +401,37 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
       _iosOnMessageOpenedAppListener = FirebaseMessaging.onMessageOpenedApp
           .listen((RemoteMessage message) async {
             //print('ON MESSAGE OPENED APP ${message.data}'
-            Navigator.popUntil(
-              context,
-              ModalRoute.withName(IotRoutes.HOME_PAGE),
-            );
-            switch (message.data['messageType']) {
-              case 'IM':
-                await IotNavigatorInternalMessage().onTap(
-                  context,
-                  int.tryParse(message.data['originalId']) ?? 0,
-                  message.data['originalCreator'],
-                  message.data['groupName'],
-                  true,
-                  '',
-                );
-                break;
-              case 'AR':
-                await IotNavigatorAutoReportPage().onTap(
-                  context,
-                  int.tryParse(message.data['id']) ?? 0,
-                  message.data['reportType'],
-                  message.data['reportDate'],
-                  message.data['title'],
-                  true,
-                );
-                break;
-            }
+            await _openRemoteMessage(message);
           });
     } catch (e, s) {
       debugPrint('IOT Firebase message config error: $e');
       debugPrintStack(stackTrace: s);
+    }
+  }
+
+  Future<void> _openRemoteMessage(RemoteMessage message) async {
+    Navigator.popUntil(context, ModalRoute.withName(IotRoutes.HOME_PAGE));
+    switch (message.data['messageType']) {
+      case 'IM':
+        await IotNavigatorInternalMessage().onTap(
+          context,
+          int.tryParse(message.data['originalId']) ?? 0,
+          message.data['originalCreator'],
+          message.data['groupName'],
+          true,
+          '',
+        );
+        break;
+      case 'AR':
+        await IotNavigatorAutoReportPage().onTap(
+          context,
+          int.tryParse(message.data['id']) ?? 0,
+          message.data['reportType'],
+          message.data['reportDate'],
+          message.data['title'],
+          true,
+        );
+        break;
     }
   }
 
