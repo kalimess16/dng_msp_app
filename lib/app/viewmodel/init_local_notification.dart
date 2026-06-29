@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -85,6 +86,8 @@ Future<void> requestIotNotificationPermissions() async {
     badge: true,
     sound: true,
   );
+
+  await debugIotNotificationState('permission-request');
 }
 
 Future<void> showIotLocalNotification(RemoteMessage message) async {
@@ -92,8 +95,18 @@ Future<void> showIotLocalNotification(RemoteMessage message) async {
     await initializeIotLocalNotifications();
 
     final data = message.data;
+    debugPrint('IOT FCM data: $data');
+    debugPrint(
+      'IOT FCM notification: '
+      '${message.notification?.title} - ${message.notification?.body}',
+    );
+
     final notificationType = _messageValue(data, 'messageType');
-    if (notificationType.isEmpty) return;
+    debugPrint('IOT FCM messageType: $notificationType');
+    if (notificationType.isEmpty) {
+      debugPrint('IOT FCM ignored: missing data.messageType');
+      return;
+    }
 
     final notificationDetails = _notificationDetails();
     final notificationTitle = _notificationTitle(message);
@@ -128,9 +141,39 @@ Future<void> showIotLocalNotification(RemoteMessage message) async {
           payload: '$notificationType~$id~$type~$date~$title',
         );
         break;
+
+      default:
+        debugPrint(
+          'IOT FCM ignored: unsupported messageType $notificationType',
+        );
     }
   } catch (e, s) {
     debugPrint('IOT show notification error: $e');
+    debugPrintStack(stackTrace: s);
+  }
+}
+
+Future<void> debugIotNotificationState([String source = '']) async {
+  try {
+    final settings = await FirebaseMessaging.instance.getNotificationSettings();
+    final fcmToken = await FirebaseMessaging.instance.getToken();
+    String? apnsToken;
+    if (Platform.isIOS || Platform.isMacOS) {
+      apnsToken = await FirebaseMessaging.instance.getAPNSToken();
+    }
+
+    final label = source.isEmpty ? '' : ' [$source]';
+    debugPrint(
+      'IOT notification state$label: '
+      'authorization=${settings.authorizationStatus.name}, '
+      'alert=${settings.alert.name}, '
+      'badge=${settings.badge.name}, '
+      'sound=${settings.sound.name}, '
+      'apnsToken=${_maskedToken(apnsToken)}, '
+      'fcmToken=${_maskedToken(fcmToken)}',
+    );
+  } catch (e, s) {
+    debugPrint('IOT notification state error: $e');
     debugPrintStack(stackTrace: s);
   }
 }
@@ -176,6 +219,12 @@ String _messageValue(
 
 int _messageIntValue(Map<String, dynamic> data, String key) {
   return int.tryParse(_messageValue(data, key, '0')) ?? 0;
+}
+
+String _maskedToken(String? token) {
+  if (token == null || token.isEmpty) return '<empty>';
+  if (token.length <= 12) return token;
+  return '${token.substring(0, 6)}...${token.substring(token.length - 6)}';
 }
 
 String? _notificationTitle(RemoteMessage message) {
