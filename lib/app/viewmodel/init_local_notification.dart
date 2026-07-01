@@ -26,11 +26,22 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 bool _localNotificationsInitialized = false;
 bool _localNotificationsResponseCallbackInitialized = false;
+const Duration _localNotificationDedupeWindow = Duration(minutes: 5);
+final Map<String, int> _recentLocalNotificationKeys = <String, int>{};
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   DartPluginRegistrant.ensureInitialized();
   await Firebase.initializeApp();
+
+  if (_hasRemoteNotificationPayload(message)) {
+    debugPrint(
+      'IOT FCM background notification handled by system tray; '
+      'skip local duplicate.',
+    );
+    return;
+  }
+
   await showIotLocalNotification(message);
 }
 
@@ -82,9 +93,9 @@ Future<void> requestIotNotificationPermissions() async {
   );
 
   await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-    alert: true,
-    badge: true,
-    sound: true,
+    alert: false,
+    badge: false,
+    sound: false,
   );
 
   await debugIotNotificationState('permission-request');
@@ -105,6 +116,20 @@ Future<void> showIotLocalNotification(RemoteMessage message) async {
     debugPrint('IOT FCM messageType: $notificationType');
     if (notificationType.isEmpty) {
       debugPrint('IOT FCM ignored: missing data.messageType');
+      return;
+    }
+
+    if (!_isDisplayableNotification(message, notificationType)) {
+      debugPrint(
+        'IOT FCM ignored: $notificationType payload is not a display '
+        'notification.',
+      );
+      return;
+    }
+
+    final notificationKey = _localNotificationKey(message, notificationType);
+    if (!_markLocalNotificationAsShown(notificationKey)) {
+      debugPrint('IOT FCM ignored: duplicate notification $notificationKey');
       return;
     }
 
@@ -239,10 +264,68 @@ String? _notificationBody(RemoteMessage message) {
   return message.notification?.body;
 }
 
+bool _isDisplayableNotification(
+  RemoteMessage message,
+  String notificationType,
+) {
+  switch (notificationType) {
+    case 'IM':
+      return _messageValue(message.data, 'title').isNotEmpty;
+    case 'AR':
+      return (_notificationTitle(message) ?? '').isNotEmpty;
+    default:
+      return true;
+  }
+}
+
+String _localNotificationKey(RemoteMessage message, String notificationType) {
+  final data = message.data;
+  switch (notificationType) {
+    case 'IM':
+      return [
+        'IM',
+        _messageValue(data, 'notificationId'),
+        _messageValue(data, 'originalId'),
+        _messageValue(data, 'originalCreator'),
+        _messageValue(data, 'id'),
+        _messageValue(data, 'time'),
+      ].join(':');
+    case 'AR':
+      return [
+        'AR',
+        _messageValue(data, 'id'),
+        _messageValue(data, 'reportType'),
+        _messageValue(data, 'time'),
+      ].join(':');
+    default:
+      final messageId = message.messageId;
+      if (messageId != null && messageId.isNotEmpty) return 'fcm:$messageId';
+      return '$notificationType:${DateTime.now().microsecondsSinceEpoch}';
+  }
+}
+
+bool _markLocalNotificationAsShown(String key) {
+  final now = DateTime.now().millisecondsSinceEpoch;
+  final windowMs = _localNotificationDedupeWindow.inMilliseconds;
+  _recentLocalNotificationKeys.removeWhere(
+    (_, shownAt) => now - shownAt > windowMs,
+  );
+
+  final shownAt = _recentLocalNotificationKeys[key];
+  if (shownAt != null && now - shownAt <= windowMs) return false;
+
+  _recentLocalNotificationKeys[key] = now;
+  return true;
+}
+
 Future<void> _createAndroidNotificationChannel() async {
   await flutterLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin
       >()
       ?.createNotificationChannel(notificationChannel);
+}
+
+bool _hasRemoteNotificationPayload(RemoteMessage message) {
+  return message.notification != null;
 }

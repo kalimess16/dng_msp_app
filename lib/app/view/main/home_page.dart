@@ -365,14 +365,16 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
       //print(await FirebaseMessaging.instance.getToken());
 
       // Android & IOS
+      await _onMessageListener?.cancel();
       _onMessageListener = FirebaseMessaging.onMessage.listen((
         RemoteMessage message,
       ) async {
         //print("ON MESSAGE1 ${message.data}");
-        await showIotLocalNotification(message);
         switch (message.data['messageType']) {
           case 'IM':
-            if (message.data['title'] != null) {
+            final dataTitle = message.data['title']?.toString();
+            if (dataTitle != null && dataTitle.isNotEmpty) {
+              await showIotLocalNotification(message);
               context
                   .read<IotListInternalMessageStream>()
                   .parseIotFirebaseMessage(message.data);
@@ -390,6 +392,7 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
                   .updateIotFirebaseMessage(message.data);
             break;
           case 'AR':
+            await showIotLocalNotification(message);
             await context
                 .read<IotListAutoReportStream>()
                 .parseIotFirebaseMessage(message.data);
@@ -398,6 +401,7 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
       });
 
       // IOS when click notification
+      await _iosOnMessageOpenedAppListener?.cancel();
       _iosOnMessageOpenedAppListener = FirebaseMessaging.onMessageOpenedApp
           .listen((RemoteMessage message) async {
             //print('ON MESSAGE OPENED APP ${message.data}'
