@@ -34,6 +34,14 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   DartPluginRegistrant.ensureInitialized();
   await Firebase.initializeApp();
 
+  if (Platform.isIOS || Platform.isMacOS) {
+    debugPrint(
+      'IOT FCM background notification handled by APNs; '
+      'skip local duplicate on Apple platforms.',
+    );
+    return;
+  }
+
   if (_hasRemoteNotificationPayload(message)) {
     debugPrint(
       'IOT FCM background notification handled by system tray; '
