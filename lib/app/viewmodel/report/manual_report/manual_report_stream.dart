@@ -4,12 +4,13 @@ import 'package:dngmsp/app/model/report/manual_report.dart';
 import 'package:dngmsp/app/service/report/manual_report/manual_report_service.dart';
 
 class IotManualReportStream {
-
   Map<String, dynamic> _mapReportParameters = Map();
   Map<String, dynamic> _mapRequiredValues = Map();
+  bool _isReportParametersInitialized = false;
 
   var _parameterController = StreamController<Map<String, dynamic>>.broadcast();
-  Stream<Map<String, dynamic>> get parameterStream => _parameterController.stream;
+  Stream<Map<String, dynamic>> get parameterStream =>
+      _parameterController.stream;
   void disposeParameterStream() => _parameterController.close();
 
   var _valueController = StreamController<Map<String, dynamic>>.broadcast();
@@ -28,26 +29,32 @@ class IotManualReportStream {
     return _mapRequiredValues;
   }
 
-  void setMapReportParameters(List<IotManualReport> list) {
+  void initializeMapReportParameters(List<IotManualReport> list) {
+    if (_isReportParametersInitialized) return;
+
     _mapReportParameters = Map();
     _mapRequiredValues = Map();
     list.forEach((element) {
       _mapReportParameters.putIfAbsent(element.id!, () => element.value);
       _mapRequiredValues.putIfAbsent(element.id!, () => element.required);
     });
+    _isReportParametersInitialized = true;
     _parameterController.sink.add(_mapReportParameters);
     _valueController.sink.add(_mapRequiredValues);
   }
 
   void setDateTextField(String id, DateTime selectedDate) {
-    _mapReportParameters.update(id, (value) =>
-    "${selectedDate.day <= 9 ? '0' : ''}${selectedDate.day}/"
-        "${selectedDate.month <= 9 ? '0' : ''}${selectedDate.month}/"
-        "${selectedDate.year}");
+    _mapReportParameters.update(
+      id,
+      (value) =>
+          "${selectedDate.day <= 9 ? '0' : ''}${selectedDate.day}/"
+          "${selectedDate.month <= 9 ? '0' : ''}${selectedDate.month}/"
+          "${selectedDate.year}",
+    );
     _parameterController.sink.add(_mapReportParameters);
   }
 
-  void setDropdownTextField(String id, dynamic selectedItemValue) {
+  void setDropdownTextField(String id, String selectedItemValue) {
     _mapReportParameters.update(id, (value) => selectedItemValue);
     _parameterController.sink.add(_mapReportParameters);
   }

@@ -27,6 +27,7 @@ class _IotManualReportPageState extends State<IotManualReportPage> {
   final _formKey = GlobalKey<FormState>();
   late List<Widget> _listItems;
   late IotManualReportStream _manualReportStream;
+  late final Future<List<IotManualReport>> _manualReportsFuture;
 
   bool get _isLandscape =>
       MediaQuery.of(context).orientation == Orientation.landscape;
@@ -41,6 +42,9 @@ class _IotManualReportPageState extends State<IotManualReportPage> {
   void initState() {
     super.initState();
     _manualReportStream = IotManualReportStream();
+    _manualReportsFuture = _manualReportStream.fetchIotReports(
+      widget.reportCode!,
+    );
   }
 
   @override
@@ -65,13 +69,12 @@ class _IotManualReportPageState extends State<IotManualReportPage> {
 
   Widget _buildBodyPage() {
     return FutureBuilder<List<IotManualReport>>(
-      future: _manualReportStream.fetchIotReports(widget.reportCode!),
+      future: _manualReportsFuture,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
-          _manualReportStream.setMapReportParameters(
-            snapshot.data as List<IotManualReport>,
-          );
-          return _buildForm(snapshot.data as List<IotManualReport>);
+          final reports = snapshot.data!;
+          _manualReportStream.initializeMapReportParameters(reports);
+          return _buildForm(reports);
         } else if (snapshot.hasError) {
           return IotExceptionPage(exception: snapshot.error);
         } else
@@ -312,16 +315,18 @@ class _IotManualReportPageState extends State<IotManualReportPage> {
     Map<String, dynamic> dropDownList,
     String description,
   ) {
-    List<PopupMenuEntry> menuItems = [];
+    final List<PopupMenuEntry<String>> menuItems = [];
     dropDownList.forEach((code, name) {
       menuItems.add(
-        PopupMenuItem(
-          child: Text(name, style: TextStyle(color: Colors.white)),
+        PopupMenuItem<String>(
           value: code,
+          child: Text(
+            name.toString(),
+            style: const TextStyle(color: Colors.white),
+          ),
         ),
       );
     });
-    String? _selectedValue;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -354,17 +359,16 @@ class _IotManualReportPageState extends State<IotManualReportPage> {
                         BuildContext context,
                         AsyncSnapshot<Map<String, dynamic>> snapshot,
                       ) {
-                        if (snapshot.hasData) {
-                          var data = snapshot.data as Map<String, dynamic>;
-                          _selectedValue = data[id];
-                        } else
-                          _selectedValue = _manualReportStream
-                              .getParametersMap()[id];
-
-                        _selectedValue = _selectedValue ?? '';
+                        final parameters =
+                            snapshot.data ??
+                            _manualReportStream.getParametersMap();
+                        final selectedCode = parameters[id]?.toString() ?? '';
+                        final selectedLabel =
+                            dropDownList[selectedCode]?.toString() ??
+                            selectedCode;
 
                         return Text(
-                          _selectedValue!,
+                          selectedLabel,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -376,7 +380,7 @@ class _IotManualReportPageState extends State<IotManualReportPage> {
                       },
                 ),
               ),
-              PopupMenuButton(
+              PopupMenuButton<String>(
                 icon: Icon(
                   Icons.arrow_drop_down_circle_outlined,
                   size: _fieldIconSize,
