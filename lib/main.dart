@@ -1,11 +1,8 @@
-import 'dart:io';
-
 import 'package:dngmsp/app/model/shared_preferences.dart';
 import 'package:dngmsp/app/provider/provider.dart';
 import 'package:dngmsp/app/resource/color/app_colors.dart';
 import 'package:dngmsp/app/resource/routes.dart';
 import 'package:dngmsp/app/resource/string/app_strings.dart';
-import 'package:dngmsp/app/viewmodel/http_overrides.dart';
 import 'package:dngmsp/app/viewmodel/init_local_notification.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -19,15 +16,13 @@ void main() async {
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-  await IotSharedPreferences().get().then((prefs) {
-    HttpOverrides.global = IotHttpOverrides();
-    runApp(
-      MultiProvider(
-        providers: iotMultiProvider,
-        child: MainApp(preferences: prefs),
-      ),
-    );
-  });
+  final preferences = await IotSharedPreferences().get();
+  runApp(
+    MultiProvider(
+      providers: iotMultiProvider,
+      child: MainApp(preferences: preferences),
+    ),
+  );
 }
 
 class MainApp extends StatelessWidget {

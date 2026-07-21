@@ -1,15 +1,31 @@
 import 'exception.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'secure_storage.dart';
 
 class IotSharedPreferences {
-  final String iotPrefsWsToken = 'dngWsToken';
-  final String iotPrefsWsFullName = 'dngFullName';
-  final String iotPrefsWsEmail = 'dngEmail';
-  final String iotPrefsWsUsername = 'dngUsername';
+  static const String iotPrefsWsToken = 'dngWsToken';
+  static const String iotPrefsWsFullName = 'dngFullName';
+  static const String iotPrefsWsEmail = 'dngEmail';
+  static const String iotPrefsWsUsername = 'dngUsername';
+
+  static const List<String> _keys = <String>[
+    iotPrefsWsToken,
+    iotPrefsWsFullName,
+    iotPrefsWsEmail,
+    iotPrefsWsUsername,
+  ];
+
+  final IotSecureStore _storage;
+
+  IotSharedPreferences({IotSecureStore? storage})
+    : _storage = storage ?? IotPlatformSecureStorage();
 
   Future<bool> clear() async {
-    final prefs = await SharedPreferences.getInstance();
-    return await prefs.clear();
+    try {
+      await _storage.deleteAll(_keys);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<bool> set(
@@ -19,14 +35,13 @@ class IotSharedPreferences {
     String username,
   ) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final results = await Future.wait([
-        prefs.setString(iotPrefsWsToken, wsToken),
-        prefs.setString(iotPrefsWsFullName, fullName),
-        prefs.setString(iotPrefsWsEmail, email),
-        prefs.setString(iotPrefsWsUsername, username),
-      ]);
-      return results.every((result) => result);
+      await _storage.writeAll(<String, String>{
+        iotPrefsWsToken: wsToken,
+        iotPrefsWsFullName: fullName,
+        iotPrefsWsEmail: email,
+        iotPrefsWsUsername: username,
+      });
+      return true;
     } catch (exp) {
       throw IotException(code: 0);
     }
@@ -34,19 +49,24 @@ class IotSharedPreferences {
 
   Future<List<String>> get() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      if (prefs.get(iotPrefsWsToken) == null ||
-          prefs.get(iotPrefsWsUsername) == null)
-        return [];
-      else
-        return [
-          prefs.get(iotPrefsWsToken) as String,
-          prefs.get(iotPrefsWsFullName) as String,
-          prefs.get(iotPrefsWsEmail) as String,
-          prefs.get(iotPrefsWsUsername) as String,
-        ];
-    } catch (exp) {
-      throw IotException(code: 0);
+      final values = await _storage.readAll(_keys);
+      final token = values[iotPrefsWsToken];
+      final fullName = values[iotPrefsWsFullName];
+      final email = values[iotPrefsWsEmail];
+      final username = values[iotPrefsWsUsername];
+
+      if (token == null ||
+          token.isEmpty ||
+          fullName == null ||
+          email == null ||
+          username == null ||
+          username.isEmpty) {
+        return <String>[];
+      }
+      return <String>[token, fullName, email, username];
+    } catch (_) {
+      // Fail closed: unreadable credentials require a new login.
+      return <String>[];
     }
   }
 }
