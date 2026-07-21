@@ -42,46 +42,91 @@ class IotRoutes {
   MaterialPageRoute routes(RouteSettings settings) {
     switch (settings.name) {
       case LOGIN_PAGE:
-        return MaterialPageRoute(settings: settings, builder: (context) => IotLoginPage());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => IotLoginPage(),
+        );
       case ACCOUNT_PAGE:
-        return MaterialPageRoute(settings: settings, builder: (context) => IotAccountPage());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => IotAccountPage(),
+        );
 
       case HOME_PAGE:
-        return MaterialPageRoute(settings: settings, builder: (context) => IotHomePage());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => IotHomePage(),
+        );
       case CREDIT_REPORT_PAGE:
         return MaterialPageRoute(
-            settings: settings, builder: (context) => IotListManualReportsPage(type: 'credit', title: 'BÁO CÁO TÍN DỤNG'));
+          settings: settings,
+          builder: (context) => IotListManualReportsPage(
+            type: 'credit',
+            title: 'BÁO CÁO TÍN DỤNG',
+          ),
+        );
       case ACCOUNTANT_REPORT_PAGE:
         return MaterialPageRoute(
-            settings: settings, builder: (context) => IotListManualReportsPage(type: 'accountant', title: 'BÁO CÁO KẾ TOÁN'));
+          settings: settings,
+          builder: (context) => IotListManualReportsPage(
+            type: 'accountant',
+            title: 'BÁO CÁO KẾ TOÁN',
+          ),
+        );
       case QUERY_REPORT_PAGE:
         return MaterialPageRoute(
-            settings: settings, builder: (context) => IotListManualReportsPage(type: 'query', title: 'TRUY THÔNG TIN KHÁCH HÀNG'));
+          settings: settings,
+          builder: (context) => IotListManualReportsPage(
+            type: 'query',
+            title: 'TRUY VẤN THÔNG TIN KHÁCH HÀNG',
+          ),
+        );
       case AUTO_REPORT_PAGE:
-        return MaterialPageRoute(settings: settings, builder: (context) => IotListAutoReportPage());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => IotListAutoReportPage(),
+        );
       case SERVER_ROME_PAGE:
-        return MaterialPageRoute(settings: settings, builder: (context) => IotServerRoomPage());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => IotServerRoomPage(),
+        );
       case MSP_PAGE:
         return MaterialPageRoute(
-            settings: settings, builder: (context) => IotListInternalMessagesPage());
+          settings: settings,
+          builder: (context) => IotListInternalMessagesPage(),
+        );
 
       case COMPOSE_MSP_PAGE:
         return MaterialPageRoute(
-            settings: settings, builder: (context) => IotComposeInternalMessagePage(openFromHomePage: true,));
+          settings: settings,
+          builder: (context) =>
+              IotComposeInternalMessagePage(openFromHomePage: true),
+        );
       case COMPOSE_MSP_PAGE_IN_LIST:
         return MaterialPageRoute(
-            settings: settings, builder: (context) => IotComposeInternalMessagePage(openFromHomePage: false,));
+          settings: settings,
+          builder: (context) =>
+              IotComposeInternalMessagePage(openFromHomePage: false),
+        );
       case SEARCH_MSP_PAGE:
         return MaterialPageRoute(
-            settings: settings, builder: (context) => IotSearchInternalMessagesPage());
+          settings: settings,
+          builder: (context) => IotSearchInternalMessagesPage(),
+        );
       //case CONDUCT_PAGE:
-        //return MaterialPageRoute(settings: settings, builder: (context) => ConductPage());
-        //return MaterialPageRoute(settings: settings, builder: (context) => CommonConductPage());
+      //return MaterialPageRoute(settings: settings, builder: (context) => ConductPage());
+      //return MaterialPageRoute(settings: settings, builder: (context) => CommonConductPage());
       case SEARCH_DOCUMENT_PAGE:
         return MaterialPageRoute(
-            settings: settings, builder: (context) => SearchDocumentPage());
+          settings: settings,
+          builder: (context) => SearchDocumentPage(),
+        );
       default:
-        return MaterialPageRoute(settings: settings, builder: (context) => IotLoginPage());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (context) => IotLoginPage(),
+        );
     }
   }
 }

@@ -154,9 +154,28 @@ class IotBottomNavigatorBar extends StatelessWidget {
             .countUnreadAutoReports(),
         builder: (context, snapshot) {
           return (snapshot.hasData && snapshot.data! > 0
-              ? _positioned(snapshot.data as int)
-              : SizedBox());
+              ? _buildNotificationDot()
+              : const SizedBox.shrink());
         },
+      ),
+    );
+  }
+
+  Widget _buildNotificationDot() {
+    return Positioned(
+      right: -4,
+      top: -2,
+      child: Semantics(
+        label: 'Có số liệu định kỳ mới',
+        child: Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: Colors.red,
+            shape: BoxShape.circle,
+            border: Border.all(color: IOT_BG_COLOR, width: 1.5),
+          ),
+        ),
       ),
     );
   }

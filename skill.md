@@ -15,6 +15,12 @@
 
 Không tạo Future thực hiện HTTP trực tiếp trong `build()` nếu kết quả chỉ cần tải một lần theo vòng đời màn hình. Mọi hàm khởi tạo state từ dữ liệu API phải có tính idempotent để rebuild không làm mất dữ liệu đang nhập.
 
+## Badge số liệu định kỳ trên thanh điều hướng
+
+- Chỉ hiển thị một chấm đỏ khi có số liệu định kỳ mới, không hiển thị số lượng chưa đọc.
+- Giữ nguyên điều kiện `countUnreadAutoReports() > 0`; khi không có dữ liệu mới thì ẩn chấm đỏ.
+- Badge tin nhắn nội bộ vẫn hiển thị số lượng, không dùng chung kiểu chấm đỏ này.
+
 ## Bảng báo cáo bị cắt chữ trên màn hình nhỏ
 
 - Hiện tượng: các tiêu chí dài từ 3 dòng trở lên bị cắt phần cuối; tiêu đề cột bị xuống dòng từng ký tự trên thiết bị hẹp hoặc khi tăng cỡ chữ hệ thống.
