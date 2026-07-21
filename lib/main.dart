@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:dngmsp/app/model/shared_preferences.dart';
 import 'package:dngmsp/app/provider/provider.dart';
 import 'package:dngmsp/app/resource/color/app_colors.dart';
 import 'package:dngmsp/app/resource/routes.dart';
 import 'package:dngmsp/app/resource/string/app_strings.dart';
 import 'package:dngmsp/app/viewmodel/init_local_notification.dart';
+import 'package:dngmsp/app/viewmodel/pinned_http_overrides.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -13,6 +16,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final apiUri = Uri.parse(IOT_REQUEST_URL);
+  HttpOverrides.global = await IotPinnedHttpOverrides.fromAsset(
+    host: apiUri.host,
+    port: apiUri.port,
+  );
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 

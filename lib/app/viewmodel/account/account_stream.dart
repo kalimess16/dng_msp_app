@@ -151,10 +151,9 @@ class IotAccountStream {
 
     try {
       final response = await IotAccountService()
-          .loginIot(gmail, guid, _uuid, _os)
-          .timeout(Duration(seconds: 20));
+          .loginIot(gmail, guid, _uuid, _os);
 
-      await _googleSignIn.signOut();
+      await _signOutGoogle(_googleSignIn);
       if (response.body == LOGIN_VENDOR) return LOGIN_VENDOR;
       if (response.statusCode != 200) {
         debugPrint(
@@ -183,9 +182,7 @@ class IotAccountStream {
     } catch (e, s) {
       debugPrint('IOT login backend/network error: $e');
       debugPrintStack(stackTrace: s);
-      try {
-        await _googleSignIn.signOut();
-      } catch (_) {}
+      await _signOutGoogle(_googleSignIn);
       final message = e.toString().toLowerCase();
       if (e is TimeoutException ||
           message.contains('socketexception') ||
@@ -196,6 +193,14 @@ class IotAccountStream {
         return LOGIN_NETWORK_ERROR_KEY;
       }
       return LOGIN_BACKEND_ERROR_KEY;
+    }
+  }
+
+  Future<void> _signOutGoogle(GoogleSignIn googleSignIn) async {
+    try {
+      await googleSignIn.signOut().timeout(const Duration(seconds: 5));
+    } catch (e) {
+      debugPrint('IOT login: Google sign-out skipped: $e');
     }
   }
 

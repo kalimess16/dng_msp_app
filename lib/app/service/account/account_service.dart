@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dngmsp/app/model/exception.dart';
@@ -9,6 +10,9 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class IotAccountService {
+  static const _notificationTimeout = Duration(seconds: 8);
+  static const _requestTimeout = Duration(seconds: 30);
+
   Future<http.Response> loginIot(
     String gmail,
     String guid,
@@ -19,30 +23,44 @@ class IotAccountService {
     try {
       await initializeIotLocalNotifications();
       await requestIotNotificationPermissions();
-      fcmToken = await FirebaseMessaging.instance.getToken() ?? '';
+      fcmToken = await FirebaseMessaging.instance
+              .getToken()
+              .timeout(_notificationTimeout) ??
+          '';
     } catch (e, s) {
       debugPrint('IOT login: cannot get FCM token: $e');
       debugPrintStack(stackTrace: s);
     }
 
     Codec<String, String> codec = utf8.fuse(base64);
-    http.Response r = await http.post(
-      Uri.parse(IOT_REQUEST_URL + 'loginWithGmail'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-        "Vendor": codec.encode(IOT_APP_VERSION),
-      },
-      body: jsonEncode(<String, String>{
-        'gmail': codec.encode(gmail),
-        'guid': codec.encode(guid),
-        'uuid': uuid,
-        'fcmtoken': fcmToken,
-        'os': codec.encode(os),
-      }),
-    );
-    final responseInfo = r.statusCode == 200 ? 'success' : r.body;
-    debugPrint('IOT login response ${r.statusCode}: $responseInfo');
-    return r;
+    final client = http.Client();
+    try {
+      final response = await client
+          .post(
+            Uri.parse(IOT_REQUEST_URL + 'loginWithGmail'),
+            headers: <String, String>{
+              'Content-Type': 'application/json; charset=UTF-8',
+              'Vendor': codec.encode(IOT_APP_VERSION),
+            },
+            body: jsonEncode(<String, String>{
+              'gmail': codec.encode(gmail),
+              'guid': codec.encode(guid),
+              'uuid': uuid,
+              'fcmtoken': fcmToken,
+              'os': codec.encode(os),
+            }),
+          )
+          .timeout(_requestTimeout);
+      final responseInfo = response.statusCode == 200
+          ? 'success'
+          : response.body;
+      debugPrint(
+        'IOT login response ${response.statusCode}: $responseInfo',
+      );
+      return response;
+    } finally {
+      client.close();
+    }
   }
 
   Future<bool> logout() async {

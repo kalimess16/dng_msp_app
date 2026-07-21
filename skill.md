@@ -43,5 +43,5 @@ Không tạo Future thực hiện HTTP trực tiếp trong `build()` nếu kết
 - Không lưu bearer token, email hoặc định danh người dùng bằng `shared_preferences` vì dữ liệu được ghi dạng plaintext.
 - Dùng bridge nội bộ tới Android Keystore (AES-256-GCM, IV ngẫu nhiên, AAD theo tên key) và iOS Keychain (`WhenUnlockedThisDeviceOnly`); không thêm plugin lưu trữ từ bên ngoài.
 - Khi nâng cấp, chỉ xóa dữ liệu `flutter.*` cũ sau khi đã mã hóa/ghi Keychain thành công. Dữ liệu thiếu hoặc không giải mã được phải fail closed và yêu cầu đăng nhập lại.
-- Không đặt `badCertificateCallback` trả về `true`. TLS phải xác minh hostname, thời hạn và chuỗi CA bằng trust store hệ điều hành.
+- Không đặt `badCertificateCallback` trả về `true` cho mọi kết nối. Với máy chủ IP tự ký chưa thể thay ngay, chỉ cho phép pin toàn bộ DER đúng host/cổng, kiểm tra thời hạn và từ chối mọi chứng chỉ khác; thay pin khi server đổi chứng chỉ.
 - Tắt cleartext traffic và backup dữ liệu ứng dụng trên Android; bật ATS nghiêm ngặt trên iOS. Nếu máy chủ dùng CA nội bộ, triển khai CA/certificate hợp lệ có SAN đúng hostname thay vì bỏ qua kiểm tra TLS.
