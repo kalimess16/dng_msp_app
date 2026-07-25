@@ -17,6 +17,7 @@ import 'package:dngmsp/app/viewmodel/im/reply/navigator_internal_message.dart';
 import 'package:dngmsp/app/viewmodel/im/reply/reply_internal_message_stream.dart';
 import 'package:dngmsp/app/viewmodel/init_local_notification.dart';
 import 'package:dngmsp/app/viewmodel/report/auto_report/list_auto_report_stream.dart';
+import 'package:dngmsp/app/viewmodel/update/app_update_checker.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -39,6 +40,9 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     unawaited(_setupNotificationsAndMessaging());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) checkIotAppStoreUpdate(context);
+    });
   }
 
   @override

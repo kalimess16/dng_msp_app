@@ -6,6 +6,7 @@ import 'package:dngmsp/app/resource/string/app_strings.dart';
 import 'package:dngmsp/app/resource/string/login_strings.dart';
 import 'package:dngmsp/app/view/widget/app_bar.dart';
 import 'package:dngmsp/app/viewmodel/account/account_stream.dart';
+import 'package:dngmsp/app/viewmodel/update/app_update_checker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -31,6 +32,14 @@ class IotLoginPage extends StatefulWidget {
 
 class _IotLoginPageState extends State<IotLoginPage> {
   final _loginIotViewModel = IotAccountStream();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) checkIotAppStoreUpdate(context);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -464,7 +473,9 @@ class _IotLoginPageState extends State<IotLoginPage> {
               ),
             ),
             onPressed: () async {
-              final url = Uri.parse(IOT_UPGRADE_APP_URL);
+              final url = Uri.parse(
+                Platform.isIOS ? IOT_APP_STORE_URL : IOT_UPGRADE_APP_URL,
+              );
               if (await canLaunchUrl(url)) {
                 await launchUrl(url);
               } else {

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dngmsp/app/model/exception.dart';
 import 'package:dngmsp/app/model/shared_preferences.dart';
 import 'package:dngmsp/app/resource/font/app_fonts.dart';
@@ -79,7 +81,11 @@ class IotExceptionPage extends StatelessWidget {
                         ),
                         onPressed: () async {
                           IotSharedPreferences().clear();
-                          final url = Uri.parse(IOT_UPGRADE_APP_URL);
+                          final url = Uri.parse(
+                            Platform.isIOS
+                                ? IOT_APP_STORE_URL
+                                : IOT_UPGRADE_APP_URL,
+                          );
                           if (await canLaunchUrl(url)) {
                             await launchUrl(url);
                           } else

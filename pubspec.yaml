@@ -16,7 +16,6 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 version: 1.0.0+4
-
 environment:
   sdk: ">=3.10.0 <4.0.0"
 
@@ -34,6 +33,7 @@ dependencies:
   android_id:
     path: third_party/android_id
   connectivity_plus: 6.1.5
+  package_info_plus: ^10.1.0
   path_provider: ^2.0.10
   #firebase_analytics: ^8.3.4
   #firebase_core: ^1.17.1

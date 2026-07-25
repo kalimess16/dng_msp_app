@@ -11,6 +11,10 @@ const String IOT_REQUEST_URL = 'https://117.2.155.59:2024/'; //117.2.155.59
 const String IOT_UPGRADE_APP_URL =
     'http://117.2.155.59:2025/index.html'; //117.2.155.59
 
+const String IOT_APP_STORE_ITUNES_ID = '1573207238';
+const String IOT_APP_STORE_URL =
+    'https://apps.apple.com/vn/app/iot-danang/id$IOT_APP_STORE_ITUNES_ID';
+
 const String IOT_MESSAGE_KEY = 'MESSAGE';
 const String IOT_SPECIFIC_REPORT_KEY = 'SPECIFIC REPORT';
 
