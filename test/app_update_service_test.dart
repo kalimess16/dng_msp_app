@@ -88,4 +88,19 @@ void main() {
       skip: !const bool.fromEnvironment('RUN_APP_STORE_LOOKUP_NETWORK_TEST'),
     );
   });
+
+  group('IotAppUpdateService.fetchLatestAndroidApkVersion', () {
+    test(
+      'looks up the real internal download page and returns the APK version',
+      () async {
+        final version = await IotAppUpdateService()
+            .fetchLatestAndroidApkVersion();
+        expect(version, isNotNull);
+        expect(version, matches(RegExp(r'^\d+(\.\d+)*$')));
+      },
+      skip: !const bool.fromEnvironment(
+        'RUN_ANDROID_UPDATE_PAGE_NETWORK_TEST',
+      ),
+    );
+  });
 }

@@ -7,6 +7,10 @@ class IotAppUpdateService {
   static final Uri _lookupUri = Uri.parse(
     'https://itunes.apple.com/lookup?id=$IOT_APP_STORE_ITUNES_ID&country=vn',
   );
+  static final Uri _androidDownloadPageUri = Uri.parse(IOT_UPGRADE_APP_URL);
+  static final RegExp _androidApkVersionPattern = RegExp(
+    r'IOT_(\d+(?:\.\d+)*)_Android\.apk',
+  );
 
   Future<String?> fetchLatestAppStoreVersion() async {
     try {
@@ -24,6 +28,19 @@ class IotAppUpdateService {
 
       final version = first['version'];
       return version is String && version.isNotEmpty ? version : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String?> fetchLatestAndroidApkVersion() async {
+    try {
+      final response = await http
+          .get(_androidDownloadPageUri)
+          .timeout(const Duration(seconds: 6));
+      if (response.statusCode != 200) return null;
+
+      return _androidApkVersionPattern.firstMatch(response.body)?.group(1);
     } catch (_) {
       return null;
     }

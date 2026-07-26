@@ -41,7 +41,7 @@ class _IotHomePageState extends State<IotHomePage> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     unawaited(_setupNotificationsAndMessaging());
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) checkIotAppStoreUpdate(context);
+      if (mounted) checkIotAppUpdate(context);
     });
   }
 

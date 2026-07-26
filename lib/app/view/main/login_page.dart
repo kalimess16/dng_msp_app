@@ -37,7 +37,7 @@ class _IotLoginPageState extends State<IotLoginPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) checkIotAppStoreUpdate(context);
+      if (mounted) checkIotAppUpdate(context);
     });
   }
 
