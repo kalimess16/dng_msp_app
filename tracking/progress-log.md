@@ -96,3 +96,15 @@
   khớp ảnh ban đầu; thanh dưới giữ "Thông tin".
 - Test: +3 test mốc đọc (`document_title_scroll_test.dart`), +1 test thanh dưới khi xoay (`compact_bars_test.dart`).
   `flutter test`: +67 ~5 All passed. `flutter analyze` file sửa: No issues.
+
+### US-10 — AUS-1: tìm văn bản chỉ tải 20 văn bản, nhấn "Xem thêm" tải tiếp
+- Nguyên nhân "load ra hết": màn kết quả (`result_internal_messages_page.dart`) có listener cuộn tự gọi tải thêm mỗi khi
+  gần đáy → cuộn xuống là tải liên tục tới hết.
+- `search_internal_message_stream.dart`: `pageSize = 20`; mỗi lần tải gom đủ 20 văn bản (đọc tối đa `maxPagesPerLoad = 10`
+  trang tin), văn bản dư của trang server giữ ở bộ đệm cho lần sau (không gọi lại server, không trùng). `hasMore` = còn bộ
+  đệm hoặc server còn trang. `loadNextDocuments` lỗi → trả văn bản về bộ đệm, danh sách giữ nguyên để thử lại.
+- Màn kết quả: bỏ tự tải khi cuộn; cuối danh sách có nút "Xem thêm" (ẩn khi hết). Áp dụng cho mọi điều kiện lọc của
+  màn "Tìm văn bản" (thời gian, người gửi/nhận, từ khóa).
+- Test: `document_search_test.dart` +5 test US-10, sửa 1 test US-3 (nay đọc tiếp tới đủ 20 thay vì dừng ở kết quả đầu);
+  mới `document_search_paging_test.dart` (widget: 20 → cuộn đáy không tự tải → Xem thêm 40 → 50 rồi ẩn nút).
+  `flutter test`: +73 ~5 All passed. `flutter analyze` file sửa: No issues.

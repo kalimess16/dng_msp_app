@@ -26,6 +26,7 @@ String iotSafeTempFileName(String fileName) {
 }
 
 /// US-3: kết quả tìm kiếm theo văn bản — mỗi dòng là một văn bản khớp từ khóa.
+/// US-10: hiện 20 văn bản mới nhất; cuối danh sách có nút "Xem thêm" để tải 20 văn bản tiếp theo.
 class IotResultInternalMessagesPage extends StatefulWidget {
   final String fromDate;
   final String toDate;
@@ -46,7 +47,6 @@ class IotResultInternalMessagesPage extends StatefulWidget {
 class _IotResultInternalMessagesPageState
     extends State<IotResultInternalMessagesPage> {
   late final Future<List<IotDocumentSearchResult>> _searchFuture;
-  final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
   int _status = 0;
 
@@ -68,16 +68,6 @@ class _IotResultInternalMessagesPageState
           widget.senders,
           widget.keyword,
         );
-    _scrollController.addListener(() {
-      final position = _scrollController.position;
-      if (position.pixels >= position.maxScrollExtent - 50) _loadMore();
-    });
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadMore() async {
@@ -139,7 +129,6 @@ class _IotResultInternalMessagesPageState
         ),
       );
     return ListView.builder(
-      controller: _scrollController,
       itemCount: data.length + 1,
       itemBuilder: (context, index) {
         if (index == data.length) return _listFooter(hasMore);
@@ -165,8 +154,15 @@ class _IotResultInternalMessagesPageState
         onPressed: _loadMore,
       );
     else if (hasMore)
-      child = TextButton(
-        child: Text('Tải thêm', style: TextStyle(fontSize: _smallFontSize)),
+      child = OutlinedButton.icon(
+        icon: const Icon(Icons.expand_more, color: IOT_BG_COLOR),
+        label: Text(
+          'Xem thêm',
+          style: TextStyle(color: IOT_BG_COLOR, fontSize: _commonFontSize),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: IOT_BG_COLOR),
+        ),
         onPressed: _loadMore,
       );
     else

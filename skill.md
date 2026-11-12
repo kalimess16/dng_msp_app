@@ -91,6 +91,7 @@ Không tạo Future thực hiện HTTP trực tiếp trong `build()` nếu kết
 - So khớp bỏ dấu tiếng Việt cả dạng dựng sẵn và tổ hợp (U+0300–U+036F). Server vẫn lọc tin trước theo `content`, nên nếu server so khớp có dấu thì gõ không dấu có thể không ra kết quả.
 - Một trang tin có thể không chứa văn bản khớp → tự đọc tiếp tối đa `maxPagesPerLoad` trang; dừng khi server trả lại cùng `startTime` để tránh lặp vô hạn.
 - (US-4) `title` của `searchInternalMessages` không đủ các dòng `- VB` → chỉ ra văn bản dòng đầu. Luôn lấy nội dung đầy đủ của tin qua `listReplyInternalMessages` (khớp `id` + `creator`, cache theo chuỗi) trước khi tách văn bản. Nếu từ khóa nằm ở dòng sau mà tin vẫn không được trả về thì do server chỉ lọc dòng đầu → phải sửa ở server.
+- (US-10) Không tự tải khi cuộn tới đáy (người dùng thấy như tải hết). Mỗi lần tải hiện `pageSize = 20` văn bản, phần dư của trang server giữ ở bộ đệm cho nút "Xem thêm"; lỗi khi xem thêm phải trả văn bản đã lấy về bộ đệm để thử lại không mất/trùng.
 
 ## Giao diện khi quay ngang (US-5)
 

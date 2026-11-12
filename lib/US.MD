@@ -28,3 +28,8 @@ xem ảnh và giúp tôi khắc phục, hiện vẫn đang load theo khung nằm
 
 US-9: 
 Xoay ngang lại thì view thì oke mà nó ra nhiều dòng văn bản.
+
+US-10:
+Việc tìm kiếm VB thì thường sẽ load ra hết các vb. TÔi muốn chỉ load ra tầm 20vb mới nhất, và khi kéo xuống dưới cùng có nút Xem thêm
++ nhấn vào thì tiếp tục load 20vb tiếp theo, và cứ thế tiếp tục
++ tính năng này ap dụng cho việc tìm kiếm có điều kiện lọc theo người nhận, và theo thời gian.

@@ -41,9 +41,13 @@ class IotDocumentSearchResult {
 }
 
 /// US-3: tìm theo tên/số hiệu văn bản, chỉ trả về các văn bản khớp, không trả cả tin nhắn.
+/// US-10: mỗi lần tải (tìm lần đầu hoặc nhấn "Xem thêm") hiện tối đa [pageSize] văn bản mới nhất.
 class IotSearchInternalMessageStream extends ChangeNotifier {
-  /// Số trang tin nhắn tối đa đọc liên tiếp trong một lần tải khi trang trước không có văn bản khớp.
-  static const int maxPagesPerLoad = 5;
+  /// Số văn bản hiện thêm sau mỗi lần tải.
+  static const int pageSize = 20;
+
+  /// Số trang tin nhắn tối đa đọc liên tiếp trong một lần tải khi chưa gom đủ [pageSize] văn bản.
+  static const int maxPagesPerLoad = 10;
 
   static final RegExp _documentLineRegExp = RegExp(
     r'^\s*-?\s*VB[\s:]+(.*)$',
@@ -81,8 +85,14 @@ class IotSearchInternalMessageStream extends ChangeNotifier {
   final IotThreadMessagesFetcher _fetchThread;
   final Map<String, Future<List<IotInternalMessage>>> _threadCache = {};
   final List<IotDocumentSearchResult> documents = [];
+
+  /// Văn bản đã đọc từ server nhưng chưa hiện (trang tin có nhiều hơn số còn thiếu).
+  final List<IotDocumentSearchResult> _pending = [];
   int _nextStartTime = 0;
-  bool hasMore = true;
+  bool _serverHasMore = true;
+
+  /// Còn văn bản để "Xem thêm": còn văn bản chờ hiện hoặc server còn trang tin.
+  bool get hasMore => _pending.isNotEmpty || _serverHasMore;
 
   /// Chữ thường, bỏ dấu tiếng Việt, gộp khoảng trắng — dùng để so khớp từ khóa.
   static String foldVietnamese(String value) {
@@ -137,13 +147,15 @@ class IotSearchInternalMessageStream extends ChangeNotifier {
     String keyword,
   ) async {
     documents.clear();
+    _pending.clear();
     _threadCache.clear();
-    hasMore = true;
+    _serverHasMore = true;
     _nextStartTime = DateTime.now().millisecondsSinceEpoch;
-    await _loadDocumentPages(fromDate, toDate, senders, keyword);
+    await _loadNextPage(fromDate, toDate, senders, keyword);
     return documents;
   }
 
+  /// "Xem thêm" từ màn hình: kiểm tra kết nối rồi gọi [loadNextDocuments].
   /// 0: đã tải thêm, 1: hết dữ liệu, -1: mất kết nối, -2: lỗi mạng (101), -9: lỗi khác.
   Future<int> loadMoreDocuments(
     BuildContext context,
@@ -154,8 +166,20 @@ class IotSearchInternalMessageStream extends ChangeNotifier {
   ) async {
     if (!hasMore) return 1;
     if (!await IotUtility().checkInternetConnection(context)) return -1;
+    return loadNextDocuments(fromDate, toDate, senders, keyword);
+  }
+
+  /// Hiện thêm tối đa [pageSize] văn bản. Lỗi → giữ nguyên danh sách đang hiện để thử lại.
+  /// 0: đã tải thêm, 1: hết dữ liệu, -2: lỗi mạng (101), -9: lỗi khác.
+  Future<int> loadNextDocuments(
+    String fromDate,
+    String toDate,
+    String senders,
+    String keyword,
+  ) async {
+    if (!hasMore) return 1;
     try {
-      await _loadDocumentPages(fromDate, toDate, senders, keyword);
+      await _loadNextPage(fromDate, toDate, senders, keyword);
     } on IotException catch (e) {
       return e.code == 101 ? -2 : -9;
     } catch (_) {
@@ -166,37 +190,55 @@ class IotSearchInternalMessageStream extends ChangeNotifier {
     return hasMore ? 0 : 1;
   }
 
-  Future<void> _loadDocumentPages(
+  /// Gom đủ [pageSize] văn bản (dùng trước văn bản dư của lần trước) rồi mới thêm vào [documents].
+  Future<void> _loadNextPage(
     String fromDate,
     String toDate,
     String senders,
     String keyword,
   ) async {
-    final countBefore = documents.length;
-    for (var page = 0; page < maxPagesPerLoad && hasMore; page++) {
-      final messages = await _fetchMessages(
-        fromDate,
-        toDate,
-        senders,
-        keyword,
-        _nextStartTime,
-      );
-      if (messages.isEmpty) {
-        hasMore = false;
-        break;
+    final taken = _takePending(pageSize);
+    try {
+      for (
+        var page = 0;
+        page < maxPagesPerLoad && taken.length < pageSize && _serverHasMore;
+        page++
+      ) {
+        final messages = await _fetchMessages(
+          fromDate,
+          toDate,
+          senders,
+          keyword,
+          _nextStartTime,
+        );
+        if (messages.isEmpty) {
+          _serverHasMore = false;
+          break;
+        }
+        for (final message in await _withFullTitles(messages)) {
+          _pending.addAll(extractMatchingDocuments(message, keyword));
+        }
+        final lastTime = messages.last.time;
+        if (lastTime == _nextStartTime) {
+          // server trả lại đúng trang cũ → dừng để không lặp vô hạn
+          _serverHasMore = false;
+          break;
+        }
+        _nextStartTime = lastTime;
+        taken.addAll(_takePending(pageSize - taken.length));
       }
-      for (final message in await _withFullTitles(messages)) {
-        documents.addAll(extractMatchingDocuments(message, keyword));
-      }
-      final lastTime = messages.last.time;
-      if (lastTime == _nextStartTime) {
-        hasMore =
-            false; // server trả lại đúng trang cũ → dừng để không lặp vô hạn
-        break;
-      }
-      _nextStartTime = lastTime;
-      if (documents.length > countBefore) break;
+    } catch (_) {
+      _pending.insertAll(0, taken); // trả lại để lần "Xem thêm" sau hiện đúng thứ tự
+      rethrow;
     }
+    documents.addAll(taken);
+  }
+
+  List<IotDocumentSearchResult> _takePending(int count) {
+    final n = count < _pending.length ? count : _pending.length;
+    final taken = _pending.sublist(0, n);
+    _pending.removeRange(0, n);
+    return taken;
   }
 
   /// US-4: `title` của API tìm kiếm không chứa đủ các dòng `- VB` → thay bằng nội dung đầy đủ

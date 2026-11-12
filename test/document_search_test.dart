@@ -105,12 +105,13 @@ void main() {
       final docs = await stream.searchDocuments('', '', '', 'tín dụng');
 
       expect(docs.single.documentNo, '7/TD');
-      expect(startTimes, hasLength(2));
+      // US-10: chưa đủ 20 văn bản → đọc tiếp tới khi server hết (trang 3 rỗng).
+      expect(startTimes, hasLength(3));
       expect(
         startTimes[1],
         800,
       ); // trang 2 bắt đầu từ thời gian tin cuối trang 1
-      expect(stream.hasMore, isTrue);
+      expect(stream.hasMore, isFalse);
     });
 
     test('server hết dữ liệu → hasMore = false', () async {
@@ -238,6 +239,124 @@ void main() {
       final docs = await stream.searchDocuments('', '', '', 'tín dụng');
 
       expect(docs.single.documentNo, '5/K');
+    });
+  });
+
+  group('US-10 mỗi lần tải 20 văn bản, nhấn Xem thêm tải tiếp', () {
+    /// Server trả [pages] trang, mỗi trang [perPage] tin, mỗi tin 1 văn bản; thời gian giảm dần.
+    IotSearchMessagesFetcher pagedServer(
+      int pages,
+      int perPage,
+      List<int> startTimes,
+    ) {
+      return (from, to, senders, content, startTime) async {
+        startTimes.add(startTime);
+        final page = startTimes.length - 1;
+        if (page >= pages) return <IotInternalMessage>[];
+        return [
+          for (var i = 0; i < perPage; i++)
+            _message(
+              page * perPage + i,
+              100000 - (page * perPage + i),
+              'tin\n- VB ${page * perPage + i}/TD : Tín dụng',
+            ),
+        ];
+      };
+    }
+
+    test('trang server có 30 văn bản → lần đầu chỉ hiện 20', () async {
+      final startTimes = <int>[];
+      final stream = IotSearchInternalMessageStream(
+        fetchThread: _sameThread,
+        fetchMessages: pagedServer(1, 30, startTimes),
+      );
+
+      final docs = await stream.searchDocuments('', '', 'a;b', '');
+
+      expect(docs, hasLength(IotSearchInternalMessageStream.pageSize));
+      expect(docs.first.documentNo, '0/TD'); // mới nhất trước
+      expect(docs.last.documentNo, '19/TD');
+      expect(stream.hasMore, isTrue); // còn 10 văn bản chưa hiện
+      expect(startTimes, hasLength(1));
+    });
+
+    test('Xem thêm hiện 10 văn bản còn lại rồi hết', () async {
+      final startTimes = <int>[];
+      final stream = IotSearchInternalMessageStream(
+        fetchThread: _sameThread,
+        fetchMessages: pagedServer(1, 30, startTimes),
+      );
+      await stream.searchDocuments('1/1/2026', '12/11/2026', '', '');
+
+      final status = await stream.loadNextDocuments(
+        '1/1/2026',
+        '12/11/2026',
+        '',
+        '',
+      );
+
+      expect(stream.documents, hasLength(30));
+      expect(stream.documents[20].documentNo, '20/TD');
+      expect(stream.documents.last.documentNo, '29/TD');
+      expect(status, 1);
+      expect(stream.hasMore, isFalse);
+    });
+
+    test('trang server ít văn bản → đọc tiếp tới đủ 20, không thừa trùng', () async {
+      final startTimes = <int>[];
+      final stream = IotSearchInternalMessageStream(
+        fetchThread: _sameThread,
+        fetchMessages: pagedServer(10, 8, startTimes),
+      );
+
+      final first = await stream.searchDocuments('', '', '', 'tín dụng');
+      expect(first.map((d) => d.documentNo), [
+        for (var i = 0; i < 20; i++) '$i/TD',
+      ]);
+      expect(startTimes, hasLength(3)); // 8 + 8 + 8 ≥ 20
+
+      final status = await stream.loadNextDocuments('', '', '', 'tín dụng');
+      expect(status, 0);
+      expect(stream.documents.map((d) => d.documentNo), [
+        for (var i = 0; i < 40; i++) '$i/TD',
+      ]);
+      expect(startTimes, hasLength(5)); // 4 văn bản dư dùng lại, chỉ đọc thêm 2 trang
+    });
+
+    test('Xem thêm khi đã hết thì không gọi server', () async {
+      final startTimes = <int>[];
+      final stream = IotSearchInternalMessageStream(
+        fetchThread: _sameThread,
+        fetchMessages: pagedServer(1, 5, startTimes),
+      );
+      await stream.searchDocuments('', '', '', '');
+      expect(stream.documents, hasLength(5));
+      expect(stream.hasMore, isFalse);
+      final calls = startTimes.length;
+
+      expect(await stream.loadNextDocuments('', '', '', ''), 1);
+      expect(startTimes, hasLength(calls));
+    });
+
+    test('lỗi khi Xem thêm → giữ văn bản đã hiện, trả mã lỗi', () async {
+      var calls = 0;
+      final stream = IotSearchInternalMessageStream(
+        fetchThread: _sameThread,
+        fetchMessages: (a, b, c, d, startTime) async {
+          calls++;
+          if (calls > 3) throw IotException(code: 101);
+          return [
+            for (var i = 0; i < 8; i++)
+              _message(calls * 10 + i, 10000 - calls * 10 - i, '- VB $calls$i/X : a'),
+          ];
+        },
+      );
+      await stream.searchDocuments('', '', '', '');
+      expect(stream.documents, hasLength(20));
+
+      expect(await stream.loadNextDocuments('', '', '', ''), -2);
+      expect(stream.documents, hasLength(20));
+      expect(stream.hasMore, isTrue);
     });
   });
 
