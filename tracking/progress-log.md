@@ -108,3 +108,15 @@
 - Test: `document_search_test.dart` +5 test US-10, sửa 1 test US-3 (nay đọc tiếp tới đủ 20 thay vì dừng ở kết quả đầu);
   mới `document_search_paging_test.dart` (widget: 20 → cuộn đáy không tự tải → Xem thêm 40 → 50 rồi ẩn nút).
   `flutter test`: +73 ~5 All passed. `flutter analyze` file sửa: No issues.
+
+### US-11 — AUS-3: đối chiếu cấu hình iOS, build APK phát hành
+- iOS (rà tĩnh, không build được trên Windows): bundle `org.vbspdng.msp` khớp `GoogleService-Info.plist`, URL scheme =
+  `REVERSED_CLIENT_ID`; entitlements Sign in with Apple + push; `FirebaseAppDelegateProxyEnabled=false` và AppDelegate tự
+  gán `apnsToken`; bridge Keychain cùng tên channel với Dart; ATS nghiêm ngặt; plugin qua SPM + CocoaPods (Podfile.lock
+  khớp); fork `pdfium_flutter` có `Package.swift`; deployment target 15.6; Dart dùng `identifierForVendor` trên iOS.
+- Rủi ro iOS chưa xử lý: Firebase iOS SDK 10.12 chưa có privacy manifest (App Store có thể từ chối ITMS-91061); chưa kiểm
+  với Xcode mới; `aps-environment=development` (Xcode đổi khi archive bằng profile phân phối).
+- Android: APK đang phát hành (`IOT_1.0.2_Android.apk`) ký bằng debug key máy này (SHA-1 9640f2…), `versionCode=2`.
+  `pubspec.yaml` `1.1.1+1` → `1.1.1+3` để cài đè được. Giữ cấu hình ký hiện tại (cùng khoá với bản đang phát hành).
+- `flutter analyze`: No issues. `flutter test`: +73 ~5 All passed. `flutter build apk --release`: app-release.apk 70.3MB,
+  versionCode 3 / 1.1.1, arm64-v8a/armeabi-v7a/x86_64. Emulator: `adb install -r` đè lên bản cũ → Success, mở app OK.

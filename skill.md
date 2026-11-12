@@ -113,3 +113,11 @@ Không tạo Future thực hiện HTTP trực tiếp trong `build()` nếu kết
 - Vùng cuộn `reverse` giữ khoảng cách từ đáy; nội dung đổi chiều cao khi xoay → vùng nhìn trôi sang chỗ khác. Ghi nhớ mốc đọc (tin ở mép trên + tỉ lệ đã đọc, `iotFindReadingAnchor`) khi cuộn xong và khôi phục sau khi đổi hướng.
 - Màn xem tin từng tạo `Future` trong `build()` → xoay là tải lại cả chuỗi tin. Luôn cache `Future` trong `initState` (đúng quy tắc chung ở trên).
 - Không dựa vào biến `static` gán trong `build()` để biết trang đang xem: khi xoay mọi route trong ngăn xếp build lại theo thứ tự bất kỳ. Thanh dưới dùng `IotBottomNavigatorBar.selectedFor(context)` (ghi nhận theo route).
+
+## Build APK phát hành (US-11)
+
+- APK trên trang nâng cấp (`IOT_UPGRADE_APP_URL`) ký bằng **debug key của máy build Windows** (SHA-1 `9640f2…`), không phải
+  `vbs_dng_msp.jks` (chỉ bản 2021). Đổi khoá ký → máy đang cài phải gỡ app trước. Cả hai SHA-1 đều đã đăng ký trong Firebase.
+- `versionCode` (số sau `+` trong `pubspec.yaml`) phải lớn hơn bản đang phát hành, nếu không Android từ chối cài đè. Kiểm tra
+  bằng `aapt2 dump badging` và `apksigner verify --print-certs` trước khi gửi file.
+- iOS dùng Swift Package Manager cho đa số plugin; `Podfile.lock` chỉ còn Firebase/open_file/sign_in_with_apple là bình thường.

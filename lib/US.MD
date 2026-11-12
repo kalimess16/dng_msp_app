@@ -33,3 +33,6 @@ US-10:
 Việc tìm kiếm VB thì thường sẽ load ra hết các vb. TÔi muốn chỉ load ra tầm 20vb mới nhất, và khi kéo xuống dưới cùng có nút Xem thêm
 + nhấn vào thì tiếp tục load 20vb tiếp theo, và cứ thế tiếp tục
 + tính năng này ap dụng cho việc tìm kiếm có điều kiện lọc theo người nhận, và theo thời gian.
+
+US-11:
+đối chiếu lần cuối các tính năng và cấu hình sẵn để có thể chạy trên môi trường IOS . Sau đó build cho tôi 1 file apk để các thiết bị android có thể cài được.
