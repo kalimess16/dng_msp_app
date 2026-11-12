@@ -13,6 +13,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:pdfrx/pdfrx.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,8 @@ void main() async {
     host: apiUri.host,
     port: apiUri.port,
   );
+  // PDFium (pdfrx): tạo lại ảnh xem trước văn bản PDF trong tin nhắn.
+  await pdfrxFlutterInitialize(dismissPdfiumWasmWarnings: true);
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 

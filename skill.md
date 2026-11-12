@@ -51,3 +51,30 @@ Không tạo Future thực hiện HTTP trực tiếp trong `build()` nếu kết
 - Khi nâng cấp, chỉ xóa dữ liệu `flutter.*` cũ sau khi đã mã hóa/ghi Keychain thành công. Dữ liệu thiếu hoặc không giải mã được phải fail closed và yêu cầu đăng nhập lại.
 - Không đặt `badCertificateCallback` trả về `true` cho mọi kết nối. Với máy chủ IP tự ký chưa thể thay ngay, chỉ cho phép pin toàn bộ DER đúng host/cổng, kiểm tra thời hạn và từ chối mọi chứng chỉ khác; thay pin khi server đổi chứng chỉ.
 - Tắt cleartext traffic và backup dữ liệu ứng dụng trên Android; bật ATS nghiêm ngặt trên iOS. Nếu máy chủ dùng CA nội bộ, triển khai CA/certificate hợp lệ có SAN đúng hostname thay vì bỏ qua kiểm tra TLS.
+
+## Ảnh xem trước văn bản (tiêu đề VB) bị nhòe trên điện thoại
+
+- Hiện tượng: ảnh xem trước văn bản PDF trong tin nhắn bị nhòe/méo, nhất là văn bản scan bằng máy photo RICOH.
+- Nguyên nhân: `Image.memory(..., fit: BoxFit.fill)` ép ảnh vào khung rộng hết màn hình x cao tối đa `0.2.sh`. Ảnh server 715x463 bị kéo ngang; ảnh cũ dạng dải dọc 328x1010 (server cắt sai trang `/Rotate 270`, xem IotApp US-5) bị bóp dẹt nhiều lần. Ảnh còn bị `base64Decode` lại mỗi lần rebuild.
+- Khắc phục (`reply_download_file_widget.dart`): đọc kích thước ảnh bằng `ui.ImageDescriptor`, tính khung bằng `iotPreviewBoxSize` (giữ tỉ lệ, cao tối đa `0.32.sh`), `BoxFit.contain` + `FilterQuality.high` + `gaplessPlayback`; cache bytes đã giải mã trong State.
+- Kiểm thử: `test/document_preview_size_test.dart` (715x463, 328x1010, 1100x733 và widget thật ở màn 360x780).
+- Không dùng `BoxFit.fill` cho ảnh tài liệu; tỉ lệ ảnh luôn phải lấy từ chính ảnh.
+
+## Ảnh xem trước văn bản phải có "Sao gửi … Lưu VT" (bút phê) như IotApp
+
+- Ảnh server chỉ cắt góc trên-trái (rộng 48%, cao 22%) nên mất bút phê; ảnh cũ máy photo còn là dải dọc sai.
+- App tạo lại ảnh giống IotApp `PdfPreviewService` (US-7/9/10): `lib/app/service/im/pdf_preview_service.dart`.
+  Ảnh server có nhãn xám "VB:" (eOffice) hoặc dạng dọc → tải PDF ở nền (lần lượt), render trang đầu 180 dpi
+  bằng PDFium (`pdfrx`, đúng cả trang `/Rotate 270`), dò mực xanh → render riêng vùng "tiêu đề + Sao gửi … Lưu VT"
+  ~1100 px, nhãn "VB: <số hiệu>" trên dải trắng. Cache PNG `tmp/IOT/<messageId>/<file>.preview-eoffice-v3.png`.
+- Số hiệu nhãn: dòng tiêu đề `- VB <số hiệu> :` thứ k ứng với file thứ k (`extractDocumentNumbers`).
+- Build Android trên Windows: `pdfium_flutter` gốc tạo symlink trong CMake (cần Developer Mode) → dùng bản
+  `third_party/pdfium_flutter` (chép thay symlink) qua `dependency_overrides`. Khi nâng pdfrx phải đồng bộ bản này.
+- Kiểm thử với PDF thật: `IOT_PDF_SAMPLES=<thư mục PDF> PDFIUM_PATH=<pdfium.dll> flutter test test/pdf_preview_service_test.dart`
+  (pdfium.dll do `pdfrxInitialize()` tải về `%LOCALAPPDATA%\pdfrx`). 75 PDF thật: 61 phóng vùng bút phê, còn lại cắt như cũ.
+- Lỗi đã gặp: ảnh không bao giờ được thay vì `future.whenComplete(() => _pending.remove(key))` — `remove` trả về
+  chính Future đó, `whenComplete` đợi Future trả về → tự đợi chính mình, treo mãi. Callback của `whenComplete`
+  phải dùng thân `{ ...; }`, không trả về Future. Mỗi tác vụ trong hàng đợi có timeout 90 s để một lần tải treo
+  không chặn ảnh của văn bản khác.
+- Kiểm thử phải đi qua đúng hàm app gọi (`regenerate`, chạy trên bản release), không chỉ hàm render bên trong.
+  Test `regenerate` để file riêng (`test/pdf_preview_regenerate_test.dart`), không chạy chung với `testWidgets`.

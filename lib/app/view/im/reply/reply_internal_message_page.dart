@@ -208,7 +208,11 @@ class _IotReplyInternalMessagePageState
                         ),
                         _messageTitle(data[index]),
                         ((data[index].hasFile ?? 'N') == 'Y'
-                            ? _messageFiles(data[index].id, data[index].creator)
+                            ? _messageFiles(
+                              data[index].id,
+                              data[index].creator,
+                              data[index].title,
+                            )
                             : SizedBox()),
                         _messageButtons(
                           true,
@@ -249,7 +253,11 @@ class _IotReplyInternalMessagePageState
               _messageTopBar(data[index].creatorName, data[index].time),
               _messageTitle(data[index]),
               ((data[index].hasFile ?? 'N') == 'Y'
-                  ? _messageFiles(data[index].id, data[index].creator)
+                  ? _messageFiles(
+                              data[index].id,
+                              data[index].creator,
+                              data[index].title,
+                            )
                   : SizedBox()),
               _messageButtons(
                 false,
@@ -395,7 +403,9 @@ class _IotReplyInternalMessagePageState
       );
   }
 
-  Widget _messageFiles(int messageId, String creator) {
+  Widget _messageFiles(int messageId, String creator, String title) {
+    final documentNumbers =
+        IotReplyInternalMessageStream.extractDocumentNumbers(title);
     return FutureBuilder(
       future: _loadMessageFiles(creator, messageId),
       builder: (context, snapshot) {
@@ -415,6 +425,9 @@ class _IotReplyInternalMessagePageState
                 files[index].fileOrder,
                 files[index].eofficeId,
                 widget.searchWords,
+                documentNo: index < documentNumbers.length
+                    ? documentNumbers[index]
+                    : null,
               );
             },
           );

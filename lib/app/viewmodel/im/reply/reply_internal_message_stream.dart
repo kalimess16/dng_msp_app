@@ -268,6 +268,19 @@ class IotReplyInternalMessageStream extends ChangeNotifier {
     return textSpan;
   }
 
+  /// Số hiệu văn bản theo thứ tự các dòng tiêu đề `- VB <số hiệu> : <trích yếu>`
+  /// (dòng thứ k ứng với file thứ k của tin nhắn). Dòng không có số hiệu → chuỗi rỗng.
+  static List<String> extractDocumentNumbers(String title) {
+    final lineRegExp = RegExp(r'^\s*-?\s*VB[\s:]+', caseSensitive: false);
+    final numberRegExp = RegExp(r'^\s*-?\s*VB[\s:]+([^:]*?)\s*:', caseSensitive: false);
+    final numbers = <String>[];
+    for (final line in title.split(RegExp(r'\r\n|\n|\r'))) {
+      if (!lineRegExp.hasMatch(line)) continue;
+      numbers.add(numberRegExp.firstMatch(line)?.group(1)?.trim() ?? '');
+    }
+    return numbers;
+  }
+
   List<TextSpan> highlightOccurrences(
     String source,
     String query, {

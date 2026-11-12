@@ -56,8 +56,12 @@ dependencies:
   http_parser: ^4.0.2
   url_launcher: ^6.0.20
   wakelock_plus: ^1.6.1
+  pdfrx: ^2.2.24
 
 dependency_overrides:
+  # Bản pdfium_flutter 0.1.9 sửa CMake Android: chép thư viện thay cho symlink (build được trên Windows).
+  pdfium_flutter:
+    path: third_party/pdfium_flutter
   firebase_auth_platform_interface: 6.16.2
   firebase_auth_web: 5.6.3
   #intl: 0.20.2
