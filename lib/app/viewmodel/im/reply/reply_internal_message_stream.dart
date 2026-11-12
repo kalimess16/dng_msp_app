@@ -281,6 +281,37 @@ class IotReplyInternalMessageStream extends ChangeNotifier {
     return numbers;
   }
 
+  /// Tin nhắn là thông báo văn bản khi có ít nhất một dòng `- VB <số hiệu> : <trích yếu>`.
+  static bool isDocumentNotification(String title) =>
+      extractDocumentNumbers(title).isNotEmpty;
+
+  /// Vị trí của thông báo văn bản mới nhất (theo `time`) trong [messages], `null` nếu không có.
+  static int? latestDocumentNotificationIndex(
+    List<IotInternalMessage> messages,
+  ) {
+    int? found;
+    for (var i = 0; i < messages.length; i++) {
+      if (!isDocumentNotification(messages[i].title)) continue;
+      if (found == null || messages[i].time > messages[found].time) found = i;
+    }
+    return found;
+  }
+
+  /// Tải nội dung file thứ [fileIndex] (ứng với dòng `- VB` thứ [fileIndex]) của một tin nhắn.
+  Future<IotDownloadFile> downloadMessageDocument({
+    required int originalId,
+    required String originalCreator,
+    required int messageId,
+    required String creator,
+    required int fileIndex,
+  }) async {
+    final files = await downloadFiles(messageId, originalId, originalCreator);
+    if (fileIndex < 0 || fileIndex >= files.length)
+      throw RangeError.index(fileIndex, files, 'fileIndex');
+    final file = files[fileIndex];
+    return downloadDataFiles(creator, messageId, file.fileName, file.fileType);
+  }
+
   List<TextSpan> highlightOccurrences(
     String source,
     String query, {

@@ -78,3 +78,37 @@ Không tạo Future thực hiện HTTP trực tiếp trong `build()` nếu kết
   không chặn ảnh của văn bản khác.
 - Kiểm thử phải đi qua đúng hàm app gọi (`regenerate`, chạy trên bản release), không chỉ hàm render bên trong.
   Test `regenerate` để file riêng (`test/pdf_preview_regenerate_test.dart`), không chạy chung với `testWidgets`.
+
+## Mở tin thông báo văn bản ở tiêu đề (US-2)
+
+- Màn xem tin nhắn dùng `SingleChildScrollView(reverse: true)` nên luôn mở ở cuối; tin văn bản có nhiều ảnh xem trước bị đẩy tiêu đề ra ngoài màn hình.
+- Với vùng cuộn `reverse`, `Scrollable.ensureVisible(alignment: 0.0)` căn **mép dưới** item; muốn mép trên lên đầu màn hình phải dùng `alignment: 1.0` (`iotRevealTopOfScrollItem` tự chọn theo `axisDirection`).
+- Ảnh xem trước tải/tạo lại muộn làm tin cao thêm → căn lại khi nhận `ScrollMetricsNotification`; ngừng tự căn khi người dùng kéo (`ScrollStartNotification.dragDetails != null`) hoặc chạm ô soạn tin.
+
+## Tìm kiếm theo văn bản (US-3)
+
+- API `searchInternalMessages` trả cả tin nhắn; app tách dòng `- VB <số hiệu> : <trích yếu>` và chỉ hiển thị văn bản khớp. Dòng `- VB` thứ k ứng với file thứ k (chạm mở thẳng file).
+- So khớp bỏ dấu tiếng Việt cả dạng dựng sẵn và tổ hợp (U+0300–U+036F). Server vẫn lọc tin trước theo `content`, nên nếu server so khớp có dấu thì gõ không dấu có thể không ra kết quả.
+- Một trang tin có thể không chứa văn bản khớp → tự đọc tiếp tối đa `maxPagesPerLoad` trang; dừng khi server trả lại cùng `startTime` để tránh lặp vô hạn.
+- (US-4) `title` của `searchInternalMessages` không đủ các dòng `- VB` → chỉ ra văn bản dòng đầu. Luôn lấy nội dung đầy đủ của tin qua `listReplyInternalMessages` (khớp `id` + `creator`, cache theo chuỗi) trước khi tách văn bản. Nếu từ khóa nằm ở dòng sau mà tin vẫn không được trả về thì do server chỉ lọc dòng đầu → phải sửa ở server.
+
+## Giao diện khi quay ngang (US-5)
+
+- Gốc lỗi: `ScreenUtilInit(designSize: 1080x1920)` cố định → ngang `.sp`/`.w` theo chiều rộng (~2,2 lần), `.h`/`.sh` theo chiều cao (~0,46 lần).
+- Dùng `IotScreenUtilInit` (`lib/app/resource/var/iot_screen.dart`): khung đổi chiều khi ngang + `fontSizeResolver` theo cạnh ngắn → dọc giữ nguyên, ngang chữ bằng dọc. `MediaQuery` có sẵn trên `MaterialApp` (do `View` cung cấp) nên đổi `designSize` theo hướng được.
+- Kích thước item (chiều cao dòng, avatar, icon) dùng `.longSide`/`.shortSide` thay `.sh`/`.sw`; chỉ giữ `.sh`/`.sw` cho giới hạn phải nằm trong màn hình (hộp thoại).
+- Không `MediaQuery.removePadding(removeBottom: true)` cho thanh điều hướng dưới: thanh cử chỉ Android đè lên nhãn.
+- (US-6) Chiều cao app bar đặt chung ở `AppBarTheme.toolbarHeight` theo hướng (`iotToolbarHeight`); thanh điều hướng dưới tự dựng với `iotBottomBarHeight` + `viewPadding.bottom`. Người dùng chọn giữ thanh trạng thái/thanh cử chỉ, chỉ thu gọn — không dùng immersive mode.
+- Khi rà `.sh`/`.sw` phải tìm cả biểu thức (`(x ?? 0.06).sh`), không chỉ số viết thẳng: `grep -E "\)\.s[hw]\b|[a-zA-Z_]\.s[hw]\b"`.
+- (US-7) Thanh điều hướng dưới phải căn giữa cả phần xanh (gồm vùng thanh cử chỉ), không để nội dung sát trên. Dùng `iotBottomBarLayout`: lề trên = lề dưới ≥ 18dp (vạch cử chỉ ~10–14dp từ đáy). Thanh 3 nút (inset > 32dp) thì nút hệ thống chiếm cả vùng → không được lấn xuống.
+
+## Ảnh xem trước văn bản khi quay ngang (US-8)
+
+- Không giới hạn chiều cao ảnh bằng `.sh` (ngang chỉ ~130dp → ảnh lọt giữa khung). Dùng `iotPreviewMaxHeight` (max của 0,32 × cạnh dài và rộng khung ÷ 4/3).
+- Ngang: xếp ảnh 2 cột bằng `iotFileColumns` (người dùng chọn) — 1 cột rộng hết khung thì mỗi ảnh cao hơn vùng nhìn. Lưới phải giữ thứ tự file để khớp dòng `- VB` thứ k.
+
+## Xoay màn hình làm nhảy nội dung (US-9)
+
+- Vùng cuộn `reverse` giữ khoảng cách từ đáy; nội dung đổi chiều cao khi xoay → vùng nhìn trôi sang chỗ khác. Ghi nhớ mốc đọc (tin ở mép trên + tỉ lệ đã đọc, `iotFindReadingAnchor`) khi cuộn xong và khôi phục sau khi đổi hướng.
+- Màn xem tin từng tạo `Future` trong `build()` → xoay là tải lại cả chuỗi tin. Luôn cache `Future` trong `initState` (đúng quy tắc chung ở trên).
+- Không dựa vào biến `static` gán trong `build()` để biết trang đang xem: khi xoay mọi route trong ngăn xếp build lại theo thứ tự bất kỳ. Thanh dưới dùng `IotBottomNavigatorBar.selectedFor(context)` (ghi nhận theo route).

@@ -1,3 +1,4 @@
+import 'package:dngmsp/app/resource/var/iot_screen.dart';
 import 'package:dngmsp/app/model/im/position.dart';
 import 'package:dngmsp/app/resource/color/app_colors.dart';
 import 'package:dngmsp/app/resource/font/app_fonts.dart';
@@ -27,7 +28,7 @@ class IotPositionButton extends StatelessWidget {
           if (_positions.length >= 2)
             _names = _names + ' + ' + '${_positions.length - 1} người ...';
           return Container(
-              height: 0.12.sh,
+              height: 0.12.longSide,
               width: double.infinity,
               padding: const EdgeInsets.only(left: 20, right: 10, top: 10),
               child: Column(

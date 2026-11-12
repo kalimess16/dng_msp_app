@@ -1,6 +1,7 @@
 import 'package:dngmsp/app/resource/color/app_colors.dart';
 import 'package:dngmsp/app/resource/icon/app_icons.dart';
 import 'package:dngmsp/app/resource/routes.dart';
+import 'package:dngmsp/app/resource/var/iot_screen.dart';
 import 'package:dngmsp/app/viewmodel/im/reply/list_internal_message_stream.dart';
 import 'package:dngmsp/app/viewmodel/report/auto_report/list_auto_report_stream.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,19 @@ import 'package:provider/provider.dart';
 
 class IotBottomNavigatorBar extends StatelessWidget {
   static int selectedIotBottomNavigatorBar = 0;
+
+  /// US-9: mục được chọn của từng trang (route). Các trang gán [selectedIotBottomNavigatorBar] trong
+  /// `build()`; khi xoay màn hình mọi trang trong ngăn xếp build lại và trang build sau cùng (thường là
+  /// home → 0) ghi đè → thanh của trang đang xem đánh dấu sai mục. Ghi nhận giá trị ở lần dựng đầu.
+  static final Expando<int> _routeSelection = Expando<int>('iotRouteTab');
+
+  /// Mục được chọn cho trang chứa [context] (giá trị tại lần dựng đầu tiên trên trang đó).
+  static int selectedFor(BuildContext context) {
+    final route = ModalRoute.of(context);
+    if (route == null) return selectedIotBottomNavigatorBar;
+    return _routeSelection[route] ??= selectedIotBottomNavigatorBar;
+  }
+
   final Map<int, List<dynamic>> _items = {
     0: [
       'IOT',
@@ -31,12 +45,18 @@ class IotBottomNavigatorBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
-    final iconSize = isLandscape ? 22.0 : 28.0;
-    final labelSize = isLandscape ? 11.0 : 14.0;
+    final orientation = MediaQuery.orientationOf(context);
+    final selectedIndex = selectedFor(context);
+    final isLandscape = orientation == Orientation.landscape;
+    final iconSize = 22.0;
+    final labelSize = isLandscape ? 12.0 : 13.0;
+    final layout = iotBottomBarLayout(
+      orientation,
+      MediaQuery.viewPaddingOf(context).bottom,
+    );
 
     return Container(
+      height: layout.height,
       decoration: BoxDecoration(
         color: IOT_BG_COLOR,
         boxShadow: [
@@ -47,81 +67,103 @@ class IotBottomNavigatorBar extends StatelessWidget {
           ),
         ],
       ),
-      child: MediaQuery.removePadding(
-        context: context,
-        removeBottom: isLandscape,
-        child: SizedBox(
-          height: isLandscape ? 56 : null,
-          child: BottomNavigationBar(
-            items: _buildBarItems(iconSize),
-            selectedItemColor: IOT_FG_COLOR,
-            selectedFontSize: labelSize,
-            unselectedFontSize: labelSize,
-            selectedLabelStyle: TextStyle(
-              fontSize: labelSize,
-              fontWeight: FontWeight.bold,
+      // US-5/6/7: nội dung căn giữa phần xanh nhưng không chạm vạch cử chỉ — xem `iotBottomBarLayout`.
+      padding: EdgeInsets.only(top: layout.top, bottom: layout.bottom),
+      child: Row(
+        children: [
+          for (final entry in _items.entries)
+            Expanded(
+              child: _buildNavItem(
+                context,
+                entry.key,
+                entry.value,
+                iconSize: iconSize,
+                labelSize: labelSize,
+                horizontal: isLandscape,
+                selected: entry.key == selectedIndex,
+              ),
             ),
-            unselectedLabelStyle: TextStyle(
-              fontSize: labelSize,
-              fontWeight: FontWeight.w600,
-            ),
-            backgroundColor: IOT_BG_COLOR,
-            elevation: 0,
-            type: BottomNavigationBarType.fixed,
-            unselectedItemColor: Colors.white70,
-            currentIndex: IotBottomNavigatorBar.selectedIotBottomNavigatorBar,
-            showUnselectedLabels: true,
-            onTap: ((index) {
-              IotBottomNavigatorBar.selectedIotBottomNavigatorBar = index;
-              switch (index) {
-                case 0:
-                  Navigator.popUntil(
-                    context,
-                    ModalRoute.withName(IotRoutes.HOME_PAGE),
-                  );
-                  break;
-                default:
-                  Navigator.pushNamed(context, _items[index]![1]);
-                  break;
-              }
-            }),
+        ],
+      ),
+    );
+  }
+
+  void _onTap(BuildContext context, int index) {
+    IotBottomNavigatorBar.selectedIotBottomNavigatorBar = index;
+    switch (index) {
+      case 0:
+        Navigator.popUntil(context, ModalRoute.withName(IotRoutes.HOME_PAGE));
+        break;
+      default:
+        Navigator.pushNamed(context, _items[index]![1]);
+        break;
+    }
+  }
+
+  Widget _buildNavItem(
+    BuildContext context,
+    int index,
+    List<dynamic> value, {
+    required double iconSize,
+    required double labelSize,
+    required bool horizontal,
+    required bool selected,
+  }) {
+    final color = selected ? IOT_FG_COLOR : Colors.white70;
+    final label = Text(
+      value[0],
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        color: color,
+        fontSize: labelSize,
+        fontWeight: selected ? FontWeight.bold : FontWeight.w600,
+      ),
+    );
+    final icon = IconTheme(
+      data: IconThemeData(color: color, size: iconSize),
+      child: _buildBarIcon(value, iconSize),
+    );
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: InkWell(
+        onTap: () => _onTap(context, index),
+        child: Center(
+          // Chữ hệ thống phóng to → thu nhỏ vừa khối nội dung thay vì tràn.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: horizontal
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [icon, const SizedBox(width: 6), label],
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [icon, const SizedBox(height: 2), label],
+                  ),
           ),
         ),
       ),
     );
   }
 
-  List<BottomNavigationBarItem> _buildBarItems(double iconSize) {
-    List<BottomNavigationBarItem> _navItems = [];
-    _items.forEach((key, value) {
-      var _nav;
-      final icon = _iconWithSize(value[2], iconSize);
-      switch (value[3]) {
-        case 'N':
-          _nav = BottomNavigationBarItem(icon: icon, label: value[0]);
-          break;
-        case 'IM':
-          _nav = BottomNavigationBarItem(
-            icon: Stack(
-              clipBehavior: Clip.none,
-              children: <Widget>[icon, _buildMessagePositioned(false)],
-            ),
-            label: value[0],
-          );
-          break;
-        case 'AR':
-          _nav = BottomNavigationBarItem(
-            icon: Stack(
-              clipBehavior: Clip.none,
-              children: <Widget>[icon, _buildAutoReportPositioned(false)],
-            ),
-            label: value[0],
-          );
-          break;
-      }
-      _navItems.add(_nav);
-    });
-    return _navItems;
+  Widget _buildBarIcon(List<dynamic> value, double iconSize) {
+    final icon = _iconWithSize(value[2], iconSize);
+    switch (value[3]) {
+      case 'IM':
+        return Stack(
+          clipBehavior: Clip.none,
+          children: <Widget>[icon, _buildMessagePositioned(false)],
+        );
+      case 'AR':
+        return Stack(
+          clipBehavior: Clip.none,
+          children: <Widget>[icon, _buildAutoReportPositioned(false)],
+        );
+      default:
+        return icon;
+    }
   }
 
   Widget _iconWithSize(dynamic icon, double size) {

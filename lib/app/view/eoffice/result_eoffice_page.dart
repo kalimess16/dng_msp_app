@@ -1,3 +1,4 @@
+import 'package:dngmsp/app/resource/var/iot_screen.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -126,7 +127,7 @@ class _ResultEofficePageState extends State<ResultEofficePage> {
 
                 return InkWell(
                     child: Container(
-                      constraints: BoxConstraints(maxHeight: 0.12.sh),
+                      constraints: BoxConstraints(maxHeight: 0.12.longSide),
                       padding: const EdgeInsets.all(10),
                       child: Row(
                           mainAxisSize: MainAxisSize.min,

@@ -32,6 +32,83 @@ import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
+/// Cuộn vùng cuộn chứa [itemContext] để mép trên của item nằm ở mép trên màn hình,
+/// đúng cả khi vùng cuộn `reverse: true` (mở mặc định ở cuối).
+void iotRevealTopOfScrollItem(BuildContext itemContext) {
+  final scrollable = Scrollable.maybeOf(itemContext);
+  if (scrollable == null) return;
+  final reversed = axisDirectionIsReversed(scrollable.axisDirection);
+  Scrollable.ensureVisible(itemContext, alignment: reversed ? 1.0 : 0.0);
+}
+
+/// Xếp các file đính kèm thành lưới [columns] cột, giữ thứ tự (trái → phải, trên → dưới) để
+/// file thứ k vẫn ứng với dòng `- VB` thứ k. Hàng thiếu được bù ô trống cho các cột thẳng hàng.
+Widget iotFileColumns({
+  required int itemCount,
+  required int columns,
+  required IndexedWidgetBuilder itemBuilder,
+}) {
+  return Builder(
+    builder: (context) {
+      if (columns <= 1) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < itemCount; i++) itemBuilder(context, i),
+          ],
+        );
+      }
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var row = 0; row < itemCount; row += columns)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var i = row; i < row + columns; i++)
+                  Expanded(
+                    child: i < itemCount
+                        ? itemBuilder(context, i)
+                        : const SizedBox.shrink(),
+                  ),
+              ],
+            ),
+        ],
+      );
+    },
+  );
+}
+
+/// US-9: vị trí đang đọc — tin [id] và tỉ lệ (0..1) đã cuộn qua trong tin đó tính từ mép trên.
+class IotReadingAnchor {
+  final String id;
+  final double fraction;
+
+  const IotReadingAnchor(this.id, this.fraction);
+}
+
+/// Chọn tin làm mốc đọc: tin chứa mép trên vùng nhìn [viewportTop]; nếu mép trên rơi vào khoảng
+/// trống giữa hai tin thì lấy tin gần nhất phía dưới. [cards]: vị trí (toạ độ màn hình) các tin.
+IotReadingAnchor? iotFindReadingAnchor(
+  double viewportTop,
+  Map<String, Rect> cards,
+) {
+  MapEntry<String, Rect>? below;
+  for (final entry in cards.entries) {
+    final rect = entry.value;
+    if (rect.height <= 0) continue;
+    if (rect.top <= viewportTop && rect.bottom > viewportTop) {
+      final fraction = (viewportTop - rect.top) / rect.height;
+      return IotReadingAnchor(entry.key, fraction.clamp(0.0, 1.0));
+    }
+    if (rect.top > viewportTop &&
+        (below == null || rect.top < below.value.top)) {
+      below = entry;
+    }
+  }
+  return below == null ? null : IotReadingAnchor(below.key, 0);
+}
+
 class IotReplyInternalMessagePage extends StatefulWidget {
   final int originalId;
   final String originalCreator;
@@ -59,6 +136,25 @@ class _IotReplyInternalMessagePageState
   String _username = '';
   final Map<String, List<IotDownloadFile>> _messageFilesCache = {};
 
+  /// US-2: thông báo văn bản luôn hiện từ tiêu đề; ngừng tự căn khi người dùng tự cuộn/soạn tin.
+  String? _documentMessageKeyId;
+  bool _keepDocumentTitleVisible = true;
+  bool _revealDocumentTitleScheduled = false;
+
+  /// US-9: tải một lần theo vòng đời màn hình — xoay màn hình không tải lại chuỗi tin.
+  late final Future<List<String>> _preferencesFuture;
+  late final Future<List<IotInternalMessage>> _messagesFuture;
+
+  /// US-9: giữ vị trí đang đọc khi xoay màn hình. Mỗi tin có key riêng; [_readingAnchor] là tin ở
+  /// mép trên vùng nhìn và tỉ lệ đã đọc trong tin đó.
+  final Map<String, GlobalKey> _messageKeys = {};
+  final GlobalKey _viewportKey = GlobalKey();
+  final ScrollController _scrollController = ScrollController();
+  IotReadingAnchor? _readingAnchor;
+  Orientation? _lastOrientation;
+  DateTime _restoreAnchorUntil = DateTime.fromMillisecondsSinceEpoch(0);
+  bool _restoreAnchorScheduled = false;
+
   bool get _isLandscape =>
       MediaQuery.of(context).orientation == Orientation.landscape;
 
@@ -75,6 +171,13 @@ class _IotReplyInternalMessagePageState
     _emotionStream = IotEmotionStream();
     _controller = TextEditingController();
     IotStaticVariable.iotOnReplyInternalMessagePage = true;
+    _preferencesFuture = IotSharedPreferences().get();
+    _messagesFuture = context
+        .read<IotReplyInternalMessageStream>()
+        .listReplyIotInternalMessages(
+          widget.originalId,
+          widget.originalCreator,
+        );
   }
 
   @override
@@ -82,6 +185,7 @@ class _IotReplyInternalMessagePageState
     _emojiStream.dispose();
     _emotionStream.dispose();
     _controller.dispose();
+    _scrollController.dispose();
     _messageFilesCache.clear();
     IotStaticVariable.iotOnReplyInternalMessagePage = false;
     /*
@@ -103,11 +207,18 @@ class _IotReplyInternalMessagePageState
 
   @override
   Widget build(BuildContext context) {
+    final orientation = MediaQuery.orientationOf(context);
+    if (_lastOrientation != null && orientation != _lastOrientation) {
+      // US-9: vừa xoay màn hình → đưa tin đang đọc về lại mép trên (lặp lại trong lúc ảnh tải xong).
+      _restoreAnchorUntil = DateTime.now().add(const Duration(seconds: 2));
+      _scheduleRestoreAnchor();
+    }
+    _lastOrientation = orientation;
     return IotPopScope(
       child: Scaffold(
         appBar: IotAppBar().build(context, false, widget.groupName),
         body: FutureBuilder(
-          future: IotSharedPreferences().get(),
+          future: _preferencesFuture,
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               var data = snapshot.data as List<String>;
@@ -131,12 +242,7 @@ class _IotReplyInternalMessagePageState
 
   Widget _buildBody() {
     return FutureBuilder(
-      future: context
-          .read<IotReplyInternalMessageStream>()
-          .listReplyIotInternalMessages(
-            widget.originalId,
-            widget.originalCreator,
-          ),
+      future: _messagesFuture,
       builder: (context, snapshot) {
         if (snapshot.hasError)
           return IotExceptionPage(exception: snapshot.error);
@@ -148,16 +254,21 @@ class _IotReplyInternalMessagePageState
                   child: Container(
                     alignment: FractionalOffset.bottomCenter,
                     padding: EdgeInsets.only(bottom: _isLandscape ? 8 : 20),
-                    child: SingleChildScrollView(
-                      reverse: true,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildOriginalMessages(
-                            snapshot.data as List<IotInternalMessage>,
-                          ),
-                          _buildIncomingMessages(),
-                        ],
+                    child: NotificationListener<Notification>(
+                      onNotification: _onScrollNotification,
+                      child: SingleChildScrollView(
+                        key: _viewportKey,
+                        controller: _scrollController,
+                        reverse: true,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildOriginalMessages(
+                              snapshot.data as List<IotInternalMessage>,
+                            ),
+                            _buildIncomingMessages(),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -209,10 +320,10 @@ class _IotReplyInternalMessagePageState
                         _messageTitle(data[index]),
                         ((data[index].hasFile ?? 'N') == 'Y'
                             ? _messageFiles(
-                              data[index].id,
-                              data[index].creator,
-                              data[index].title,
-                            )
+                                data[index].id,
+                                data[index].creator,
+                                data[index].title,
+                              )
                             : SizedBox()),
                         _messageButtons(
                           true,
@@ -233,7 +344,84 @@ class _IotReplyInternalMessagePageState
     );
   }
 
+  bool _onScrollNotification(Notification notification) {
+    if (notification is ScrollStartNotification &&
+        notification.dragDetails != null) {
+      _keepDocumentTitleVisible = false;
+      _restoreAnchorUntil = DateTime.fromMillisecondsSinceEpoch(0);
+    } else if (notification is ScrollEndNotification) {
+      // Ghi nhớ tin đang đọc (bố cục hiện tại) để khôi phục sau khi xoay màn hình.
+      if (DateTime.now().isAfter(_restoreAnchorUntil)) _captureReadingAnchor();
+    } else if (notification is ScrollMetricsNotification) {
+      // Ảnh xem trước tải xong / xoay màn hình làm nội dung đổi chiều cao → căn lại.
+      _scheduleRevealDocumentTitle();
+      _scheduleRestoreAnchor();
+    }
+    return false;
+  }
+
+  GlobalKey _messageCardKey(IotInternalMessage message) => _messageKeys
+      .putIfAbsent(_messageKey(message.creator, message.id), () => GlobalKey());
+
+  void _scheduleRevealDocumentTitle() {
+    if (!_keepDocumentTitleVisible || _revealDocumentTitleScheduled) return;
+    _revealDocumentTitleScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _revealDocumentTitleScheduled = false;
+      if (!mounted || !_keepDocumentTitleVisible) return;
+      final itemContext = _messageKeys[_documentMessageKeyId]?.currentContext;
+      if (itemContext == null) return;
+      iotRevealTopOfScrollItem(itemContext);
+      _readingAnchor = IotReadingAnchor(_documentMessageKeyId!, 0);
+    });
+  }
+
+  void _captureReadingAnchor() {
+    final viewport = _viewportKey.currentContext?.findRenderObject();
+    if (viewport is! RenderBox || !viewport.hasSize) return;
+    final viewportTop = viewport.localToGlobal(Offset.zero).dy;
+    final cards = <String, Rect>{};
+    _messageKeys.forEach((id, key) {
+      final box = key.currentContext?.findRenderObject();
+      if (box is RenderBox && box.hasSize && box.attached) {
+        cards[id] = box.localToGlobal(Offset.zero) & box.size;
+      }
+    });
+    final anchor = iotFindReadingAnchor(viewportTop, cards);
+    if (anchor != null) _readingAnchor = anchor;
+  }
+
+  void _scheduleRestoreAnchor() {
+    if (_keepDocumentTitleVisible || _restoreAnchorScheduled) return;
+    if (DateTime.now().isAfter(_restoreAnchorUntil)) return;
+    _restoreAnchorScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _restoreAnchorScheduled = false;
+      if (!mounted || DateTime.now().isAfter(_restoreAnchorUntil)) return;
+      final anchor = _readingAnchor;
+      final itemContext = _messageKeys[anchor?.id]?.currentContext;
+      if (anchor == null || itemContext == null) return;
+      iotRevealTopOfScrollItem(itemContext);
+      final box = itemContext.findRenderObject();
+      final position = _scrollController.hasClients
+          ? _scrollController.position
+          : null;
+      if (box is! RenderBox || position == null) return;
+      // Vùng cuộn `reverse`: giảm pixels = nhìn xuống phần dưới của tin.
+      final target = position.pixels - anchor.fraction * box.size.height;
+      position.jumpTo(
+        target.clamp(position.minScrollExtent, position.maxScrollExtent),
+      );
+    });
+  }
+
   Widget _buildOriginalMessages(List<IotInternalMessage> data) {
+    final documentIndex =
+        IotReplyInternalMessageStream.latestDocumentNotificationIndex(data);
+    _documentMessageKeyId = documentIndex == null
+        ? null
+        : _messageKey(data[documentIndex].creator, data[documentIndex].id);
+    if (documentIndex != null) _scheduleRevealDocumentTitle();
     return ListView.builder(
       shrinkWrap: true,
       itemCount: data.length,
@@ -241,6 +429,7 @@ class _IotReplyInternalMessagePageState
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (context, index) {
         return Container(
+          key: _messageCardKey(data[index]),
           decoration: BoxDecoration(
             color: Colors.white,
             border: Border.all(color: Colors.black12),
@@ -254,10 +443,10 @@ class _IotReplyInternalMessagePageState
               _messageTitle(data[index]),
               ((data[index].hasFile ?? 'N') == 'Y'
                   ? _messageFiles(
-                              data[index].id,
-                              data[index].creator,
-                              data[index].title,
-                            )
+                      data[index].id,
+                      data[index].creator,
+                      data[index].title,
+                    )
                   : SizedBox()),
               _messageButtons(
                 false,
@@ -411,10 +600,10 @@ class _IotReplyInternalMessagePageState
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           List<IotDownloadFile> files = snapshot.data as List<IotDownloadFile>;
-          return ListView.builder(
-            physics: const NeverScrollableScrollPhysics(),
-            shrinkWrap: true,
+          // US-8: màn ngang xếp ảnh xem trước 2 cột để xem trọn mỗi ảnh, không trống hai bên.
+          return iotFileColumns(
             itemCount: files.length,
+            columns: _isLandscape ? 2 : 1,
             itemBuilder: (context, index) {
               return IotReplyDownloadFileWidget(
                 creator,
@@ -727,7 +916,10 @@ class _IotReplyInternalMessagePageState
           borderSide: BorderSide(color: IOT_BG_COLOR),
         ),
       ),
-      onTap: () => _emojiStream.hideEmojis(),
+      onTap: () {
+        _keepDocumentTitleVisible = false;
+        _emojiStream.hideEmojis();
+      },
     );
   }
 

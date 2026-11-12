@@ -1,3 +1,4 @@
+import 'package:dngmsp/app/resource/var/iot_screen.dart';
 import 'package:dngmsp/app/resource/color/app_colors.dart';
 import 'package:dngmsp/app/resource/font/app_fonts.dart';
 import 'package:dngmsp/app/view/widget/circular_progress_widget.dart';
@@ -42,8 +43,8 @@ class IotShortNameCircular extends StatelessWidget {
     }
     var _splitNames = _shortName.split(' ');
     return Container(
-        height: (heightCircular ?? 0.06).sh,
-        width: (weightCircular ?? 0.06).sh,
+        height: (heightCircular ?? 0.06).longSide,
+        width: (weightCircular ?? 0.06).longSide,
         decoration: BoxDecoration(shape: BoxShape.circle, color: IOT_BG_COLOR),
         child: Padding(
           child: Container(
@@ -80,8 +81,8 @@ class IotShortNameCircular extends StatelessWidget {
     var _splitNames = creatorName.split(' ');
     return GestureDetector(
         child: Container(
-            height: (heightCircular ?? 0.06).sh,
-            width: (weightCircular ?? 0.06).sh,
+            height: (heightCircular ?? 0.06).longSide,
+            width: (weightCircular ?? 0.06).longSide,
             decoration: BoxDecoration(shape: BoxShape.circle, color: IOT_BG_COLOR),
             child: Padding(
               child: Container(
@@ -202,8 +203,8 @@ class IotShortNameCircular extends StatelessWidget {
     }
     var _splitNames = _shortName.split(' ');
     return Container(
-        height: 0.056.sh,
-        width: 0.056.sh,
+        height: 0.056.longSide,
+        width: 0.056.longSide,
         decoration: BoxDecoration(shape: BoxShape.circle, color: IOT_BG_COLOR),
         child: Padding(
           child: Container(

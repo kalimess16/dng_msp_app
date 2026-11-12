@@ -1,6 +1,7 @@
 import 'package:dngmsp/app/resource/color/app_colors.dart';
 import 'package:dngmsp/app/resource/font/app_fonts.dart';
 import 'package:dngmsp/app/resource/routes.dart';
+import 'package:dngmsp/app/resource/var/iot_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -15,7 +16,7 @@ class IotAppBar {
       backgroundColor: IOT_BG_COLOR,
       foregroundColor: Colors.white,
       surfaceTintColor: Colors.transparent,
-      toolbarHeight: isLandscape ? 46 : null,
+      toolbarHeight: iotToolbarHeight(MediaQuery.orientationOf(context)),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios_new_rounded),
         color: Colors.white,

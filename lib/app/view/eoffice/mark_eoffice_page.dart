@@ -1,3 +1,4 @@
+import 'package:dngmsp/app/resource/var/iot_screen.dart';
 import 'dart:async';
 
 import 'package:dngmsp/app/model/eoffice/mark_eoffice.dart';
@@ -259,7 +260,7 @@ class _MarkEofficePageState extends State<MarkEofficePage> {
             PopupMenuButton(
                 icon: Icon(
                   Icons.arrow_drop_down_circle_outlined,
-                  size: 0.1.sw,
+                  size: 0.1.shortSide,
                   color: IOT_BG_COLOR,
                 ),
                 color: Colors.green,
@@ -320,7 +321,7 @@ class _MarkEofficePageState extends State<MarkEofficePage> {
                   _streamController.sink.add(_list);
                 },
                 icon: Icon(Icons.calendar_month,
-                    color: IOT_BG_COLOR, size: 0.1.sw))
+                    color: IOT_BG_COLOR, size: 0.1.shortSide))
           ])
     ]);
   }

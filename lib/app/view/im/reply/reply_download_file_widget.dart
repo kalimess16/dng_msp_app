@@ -1,3 +1,4 @@
+import 'package:dngmsp/app/resource/var/iot_screen.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
@@ -30,8 +31,10 @@ Future<Size?> iotReadImageSize(Uint8List bytes) async {
   try {
     final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
     final descriptor = await ui.ImageDescriptor.encoded(buffer);
-    final size =
-        Size(descriptor.width.toDouble(), descriptor.height.toDouble());
+    final size = Size(
+      descriptor.width.toDouble(),
+      descriptor.height.toDouble(),
+    );
     descriptor.dispose();
     buffer.dispose();
     if (size.width <= 0 || size.height <= 0) return null;
@@ -61,6 +64,23 @@ Size iotPreviewBoxSize({
   return Size(width, height);
 }
 
+/// Ảnh xem trước có tỉ lệ rộng/cao từ mức này trở lên luôn được trải hết chiều rộng khung
+/// (ảnh server 1,54:1; ảnh tạo lại vùng bút phê ~1,3–1,8:1).
+const double IOT_PREVIEW_FULL_WIDTH_MIN_ASPECT = 4 / 3;
+
+/// US-8: chiều cao tối đa của ảnh xem trước. Màn dọc: 32% cạnh dài (như trước). Màn ngang: 32% chiều
+/// cao màn hình chỉ ~130dp → ảnh co lại, nằm lọt giữa khung → cho phép cao đủ để ảnh văn bản
+/// (tỉ lệ ≥ [IOT_PREVIEW_FULL_WIDTH_MIN_ASPECT]) trải hết [availableWidth] như khi dọc.
+double iotPreviewMaxHeight({
+  required double availableWidth,
+  required double screenLongSide,
+}) {
+  return math.max(
+    IOT_PREVIEW_MAX_HEIGHT_FACTOR * screenLongSide,
+    availableWidth / IOT_PREVIEW_FULL_WIDTH_MIN_ASPECT,
+  );
+}
+
 class IotReplyDownloadFileWidget extends StatefulWidget {
   final creator;
   final messageId;
@@ -76,15 +96,16 @@ class IotReplyDownloadFileWidget extends StatefulWidget {
   final String? documentNo;
 
   IotReplyDownloadFileWidget(
-      this.creator,
-      this.messageId,
-      this.fileData,
-      this.fullFilename,
-      this.fileType,
-      this.fileOrder,
-      this.eofficeId,
-      this.searchWords,
-      {this.documentNo});
+    this.creator,
+    this.messageId,
+    this.fileData,
+    this.fullFilename,
+    this.fileType,
+    this.fileOrder,
+    this.eofficeId,
+    this.searchWords, {
+    this.documentNo,
+  });
 
   @override
   State<StatefulWidget> createState() {
@@ -104,24 +125,33 @@ class _IotReplyDownloadFileWidgetState
   @override
   Widget build(BuildContext context) {
     return _childDownloadFile(
-        widget.creator,
-        widget.messageId,
-        widget.fileData,
-        widget.fullFilename,
-        widget.fileType,
-        widget.fileOrder,
-        widget.eofficeId);
+      widget.creator,
+      widget.messageId,
+      widget.fileData,
+      widget.fullFilename,
+      widget.fileType,
+      widget.fileOrder,
+      widget.eofficeId,
+    );
   }
 
-  Widget _childDownloadFile(creator, messageId, _fileData, _fullFilename,
-      _fileType, _fileOrder, _eofficeId) {
+  Widget _childDownloadFile(
+    creator,
+    messageId,
+    _fileData,
+    _fullFilename,
+    _fileType,
+    _fileOrder,
+    _eofficeId,
+  ) {
     String _suffixFile = IotUtility().applicationMineType(_fileType);
     _suffixFile = _suffixFile.isEmpty
         ? _fullFilename
-            .substring(_fullFilename.lastIndexOf('.') + 1)
-            .toUpperCase()
+              .substring(_fullFilename.lastIndexOf('.') + 1)
+              .toUpperCase()
         : _suffixFile;
-    bool _isJpgFile = _fileData != null &&
+    bool _isJpgFile =
+        _fileData != null &&
         _fileData.isNotEmpty &&
         (_fileType.startsWith('image/jpg') ||
             _fileType.startsWith('image/jpeg') ||
@@ -130,8 +160,16 @@ class _IotReplyDownloadFileWidgetState
     return GestureDetector(
       child: (!_isJpgFile)
           ? _otherFileContent(_fileType, _fullFilename, _fileData, _suffixFile)
-          : _jpgFileContent(_fileType, _fullFilename, _fileData, _suffixFile,
-              _eofficeId, _fileOrder, messageId, creator),
+          : _jpgFileContent(
+              _fileType,
+              _fullFilename,
+              _fileData,
+              _suffixFile,
+              _eofficeId,
+              _fileOrder,
+              messageId,
+              creator,
+            ),
       onTap: () => _onTapChild(creator, messageId, _fullFilename, _fileType),
     );
   }
@@ -143,16 +181,18 @@ class _IotReplyDownloadFileWidgetState
       child: Text(
         '$_suffixFile',
         style: TextStyle(
-            shadows: [Shadow(color: Colors.red, blurRadius: 0.5)],
-            color: IOT_FG_COLOR,
-            fontSize: SP_COMMON_FONT_SIZE.sp,
-            fontWeight: FontWeight.w700),
+          shadows: [Shadow(color: Colors.red, blurRadius: 0.5)],
+          color: IOT_FG_COLOR,
+          fontSize: SP_COMMON_FONT_SIZE.sp,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       //height: 0.06.sh,
-      width: 0.07.sh,
+      width: 0.07.longSide,
       decoration: const BoxDecoration(
-          color: IOT_BG_COLOR,
-          borderRadius: BorderRadius.only(topRight: Radius.circular(20))),
+        color: IOT_BG_COLOR,
+        borderRadius: BorderRadius.only(topRight: Radius.circular(20)),
+      ),
     );
   }
 
@@ -163,51 +203,59 @@ class _IotReplyDownloadFileWidgetState
     Color _borderColor = Colors.green.withValues(alpha: 0.2);
     if (widget.searchWords != null &&
         widget.searchWords.toString().isNotEmpty) {
-      if (_fullFilename
-          .toString()
-          .toLowerCase()
-          .contains(widget.searchWords.toString().toLowerCase()))
+      if (_fullFilename.toString().toLowerCase().contains(
+        widget.searchWords.toString().toLowerCase(),
+      ))
         _borderColor = Colors.red;
     }
 
-    return Stack(children: [
-      StreamBuilder(
+    return Stack(
+      children: [
+        StreamBuilder(
           stream: _downloadFileStream.downloadFileStream,
           builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
             if (snapshot.hasData)
               return Container(
                 margin: const EdgeInsets.all(10),
-                constraints: BoxConstraints(maxHeight: 0.065.sh),
+                constraints: BoxConstraints(maxHeight: 0.065.longSide),
                 decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    border: Border.all(color: Colors.amber),
-                    borderRadius: const BorderRadius.all(Radius.circular(10))),
+                  color: Colors.black.withValues(alpha: 0.02),
+                  border: Border.all(color: Colors.amber),
+                  borderRadius: const BorderRadius.all(Radius.circular(10)),
+                ),
               );
             return SizedBox();
-          }),
-      Container(
+          },
+        ),
+        Container(
           margin: const EdgeInsets.all(10),
-          constraints: BoxConstraints(maxHeight: 0.065.sh),
+          constraints: BoxConstraints(maxHeight: 0.065.longSide),
           decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.02),
-              border: Border.all(color: _borderColor),
-              borderRadius: const BorderRadius.all(Radius.circular(10))),
-          child: Row(children: [
-            _prefixIcon(_suffixFile),
-            Flexible(
-              child: FittedBox(
+            color: Colors.black.withValues(alpha: 0.02),
+            border: Border.all(color: _borderColor),
+            borderRadius: const BorderRadius.all(Radius.circular(10)),
+          ),
+          child: Row(
+            children: [
+              _prefixIcon(_suffixFile),
+              Flexible(
+                child: FittedBox(
                   child: Padding(
-                    child: Text(_shortFilename,
-                        style: TextStyle(
-                          fontSize: SP_COMMON_FONT_SIZE.sp,
-                        )),
+                    child: Text(
+                      _shortFilename,
+                      style: TextStyle(fontSize: SP_COMMON_FONT_SIZE.sp),
+                    ),
                     padding: EdgeInsets.only(right: 5),
                   ),
-                  fit: BoxFit.fitWidth),
-              fit: FlexFit.loose,
-            ),
-          ]))
-    ]);
+                  fit: BoxFit.fitWidth,
+                ),
+                fit: FlexFit.loose,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   /// Bytes ảnh xem trước đã giải mã, giữ lại giữa các lần rebuild để
@@ -231,7 +279,10 @@ class _IotReplyDownloadFileWidgetState
   /// IotApp US-7/US-9/US-10: ảnh server của văn bản eOffice (nhãn "VB:") hoặc ảnh dải
   /// dọc cũ (máy photo) → tải PDF ở nền, tạo lại ảnh có "tiêu đề + Sao gửi … Lưu VT".
   /// Lỗi thì giữ ảnh server.
-  Future<void> _regeneratePreview(String source, Uint8List serverPreview) async {
+  Future<void> _regeneratePreview(
+    String source,
+    Uint8List serverPreview,
+  ) async {
     final IotPixels? pixels = await IotPixels.decode(serverPreview);
     if (pixels == null) return;
     final bool eoffice = IotPdfPreviewService.hasEofficeLabel(pixels);
@@ -246,8 +297,12 @@ class _IotReplyDownloadFileWidgetState
       label: eoffice ? 'VB: ${_documentLabel(fileName)}' : null,
       loadPdf: () async {
         final IotDownloadFile file = await IotReplyInternalMessageStream()
-            .downloadDataFiles(widget.creator, widget.messageId, fileName,
-                widget.fileType);
+            .downloadDataFiles(
+              widget.creator,
+              widget.messageId,
+              fileName,
+              widget.fileType,
+            );
         return base64Decode(file.fileData);
       },
     );
@@ -271,28 +326,43 @@ class _IotReplyDownloadFileWidgetState
         .trim();
   }
 
-  Widget _jpgFileContent(_fileType, _fullFilename, _fileData, _suffixFile,
-      _eofficeId, _fileOrder, _messageId, _creator) {
+  Widget _jpgFileContent(
+    _fileType,
+    _fullFilename,
+    _fileData,
+    _suffixFile,
+    _eofficeId,
+    _fileOrder,
+    _messageId,
+    _creator,
+  ) {
     final Uint8List bytes = _previewImageBytes(_fileData);
     return Stack(
       children: [
         StreamBuilder(
-            stream: _downloadFileStream.downloadFileStream,
-            builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
-              final Color borderColor = snapshot.hasData
-                  ? Colors.amber
-                  : Colors.green.withValues(alpha: 0.4);
-              return Container(
-                  margin: const EdgeInsets.only(
-                      top: 5, left: 10, right: 10, bottom: 5),
-                  decoration: BoxDecoration(
-                      border: Border.all(color: borderColor),
-                      borderRadius: const BorderRadius.all(Radius.circular(3))),
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(5),
-                  child: _previewImage(bytes));
-            }),
-        _markEoffices(_fileType, _eofficeId, _fileOrder, _messageId, _creator)
+          stream: _downloadFileStream.downloadFileStream,
+          builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+            final Color borderColor = snapshot.hasData
+                ? Colors.amber
+                : Colors.green.withValues(alpha: 0.4);
+            return Container(
+              margin: const EdgeInsets.only(
+                top: 5,
+                left: 10,
+                right: 10,
+                bottom: 5,
+              ),
+              decoration: BoxDecoration(
+                border: Border.all(color: borderColor),
+                borderRadius: const BorderRadius.all(Radius.circular(3)),
+              ),
+              width: double.infinity,
+              padding: const EdgeInsets.all(5),
+              child: _previewImage(bytes),
+            );
+          },
+        ),
+        _markEoffices(_fileType, _eofficeId, _fileOrder, _messageId, _creator),
       ],
       fit: StackFit.loose,
     );
@@ -302,14 +372,18 @@ class _IotReplyDownloadFileWidgetState
   /// cố định, chỉ co lại khi vượt chiều cao tối đa.
   Widget _previewImage(Uint8List bytes) {
     return FutureBuilder<Size?>(
-        future: _previewSize,
-        builder: (context, snapshot) {
-          final Size? imageSize = snapshot.data;
-          return LayoutBuilder(builder: (context, constraints) {
+      future: _previewSize,
+      builder: (context, snapshot) {
+        final Size? imageSize = snapshot.data;
+        return LayoutBuilder(
+          builder: (context, constraints) {
             final Size box = iotPreviewBoxSize(
               availableWidth: constraints.maxWidth,
               imageSize: imageSize,
-              maxHeight: IOT_PREVIEW_MAX_HEIGHT_FACTOR.sh,
+              maxHeight: iotPreviewMaxHeight(
+                availableWidth: constraints.maxWidth,
+                screenLongSide: 1.longSide,
+              ),
             );
             return Align(
               alignment: Alignment.center,
@@ -324,34 +398,46 @@ class _IotReplyDownloadFileWidgetState
                 ),
               ),
             );
-          });
-        });
+          },
+        );
+      },
+    );
   }
 
   void _onTapChild(creator, messageId, _fullFilename, _fileType) async {
     _downloadFileStream.tappedChild();
     await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          return SimpleDialog(contentPadding: EdgeInsets.all(60), children: [
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return SimpleDialog(
+          contentPadding: EdgeInsets.all(60),
+          children: [
             FutureBuilder<IotDownloadFile>(
-                future: IotReplyInternalMessageStream().downloadDataFiles(
-                    creator, messageId, _fullFilename, _fileType),
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    Navigator.of(context).pop(true);
-                    _previewDownloadFile(snapshot.data as IotDownloadFile);
-                  } else if (snapshot.hasError) {
-                    Navigator.of(context).pop(false);
-                  }
-                  return IotCircularProgressWidget();
-                })
-          ]);
-        }).then((value) {
+              future: IotReplyInternalMessageStream().downloadDataFiles(
+                creator,
+                messageId,
+                _fullFilename,
+                _fileType,
+              ),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  Navigator.of(context).pop(true);
+                  _previewDownloadFile(snapshot.data as IotDownloadFile);
+                } else if (snapshot.hasError) {
+                  Navigator.of(context).pop(false);
+                }
+                return IotCircularProgressWidget();
+              },
+            ),
+          ],
+        );
+      },
+    ).then((value) {
       if (!value)
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('KHÔNG THỂ TẢI VỀ FILE NÀY !!')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('KHÔNG THỂ TẢI VỀ FILE NÀY !!')));
     });
   }
 
@@ -363,25 +449,35 @@ class _IotReplyDownloadFileWidgetState
     await raf.close();
     OpenResult result = await OpenFile.open(_tempFile.path);
     if (result.type == ResultType.noAppToOpen)
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('CHƯA CÀI ĐẶT APP ĐỂ ĐỌC ĐỊNH DẠNG FILE NÀY')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('CHƯA CÀI ĐẶT APP ĐỂ ĐỌC ĐỊNH DẠNG FILE NÀY')),
+      );
   }
 
   Widget _markEoffices(
-      _fileType, _eofficeId, _fileOrder, _messageId, _creator) {
+    _fileType,
+    _eofficeId,
+    _fileOrder,
+    _messageId,
+    _creator,
+  ) {
     if (!_fileType.startsWith('application/pdf')) return SizedBox();
 
     return Positioned(
       child: IconButton(
-          onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (BuildContext context) => MarkEofficePage(
-                      eOfficeId: _eofficeId,
-                      messageId: _messageId,
-                      messageCreator: _creator,
-                      messageFileOrder: _fileOrder))),
-          icon: Icon(IotAppIcons.category, color: Colors.grey)),
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (BuildContext context) => MarkEofficePage(
+              eOfficeId: _eofficeId,
+              messageId: _messageId,
+              messageCreator: _creator,
+              messageFileOrder: _fileOrder,
+            ),
+          ),
+        ),
+        icon: Icon(IotAppIcons.category, color: Colors.grey),
+      ),
       top: -5,
       right: 0,
     );

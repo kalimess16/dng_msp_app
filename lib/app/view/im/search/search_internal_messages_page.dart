@@ -46,7 +46,7 @@ class _IotSearchInternalMessagesPageState
   Widget build(BuildContext context) {
     return IotPopScope(
       child: Scaffold(
-        appBar: IotAppBar().build(context, false, 'Tìm Thông tin'),
+        appBar: IotAppBar().build(context, false, 'Tìm văn bản'),
         body: SingleChildScrollView(child: _bodyPage()),
         backgroundColor: Colors.white,
         bottomNavigationBar: IotBottomNavigatorBar(),
@@ -287,7 +287,7 @@ class _IotSearchInternalMessagesPageState
       style: TextStyle(color: Colors.black, fontSize: SP_COMMON_FONT_SIZE.sp),
       keyboardType: TextInputType.text,
       decoration: InputDecoration(
-        hintText: 'Nội dung thông tin',
+        hintText: 'Tên hoặc số hiệu văn bản',
         hintStyle: const TextStyle(color: Colors.black26),
         isDense: true,
         border: const OutlineInputBorder(

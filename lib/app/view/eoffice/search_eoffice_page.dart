@@ -1,3 +1,4 @@
+import 'package:dngmsp/app/resource/var/iot_screen.dart';
 import 'dart:async';
 
 import 'package:dngmsp/app/resource/color/app_colors.dart';
@@ -173,7 +174,7 @@ class _SearchEofficePageState extends State<SearchEofficePage> {
                     PopupMenuButton(
                         icon: Icon(
                           Icons.arrow_drop_down_circle_outlined,
-                          size: 0.1.sw,
+                          size: 0.1.shortSide,
                           color: IOT_BG_COLOR,
                         ),
                         color: Colors.green,
@@ -236,7 +237,7 @@ class _SearchEofficePageState extends State<SearchEofficePage> {
                     PopupMenuButton(
                         icon: Icon(
                           Icons.arrow_drop_down_circle_outlined,
-                          size: 0.1.sw,
+                          size: 0.1.shortSide,
                           color: IOT_BG_COLOR,
                         ),
                         color: Colors.green,

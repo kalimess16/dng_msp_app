@@ -1,3 +1,4 @@
+import 'package:dngmsp/app/resource/var/iot_screen.dart';
 import 'dart:async';
 
 import 'package:dngmsp/app/resource/color/app_colors.dart';
@@ -66,7 +67,7 @@ class _IotNoteReportPageState extends State<IotNoteReportPage> {
                   padding: const EdgeInsets.only(left: 4, right: 5),
                   decoration: const BoxDecoration(color: IOT_BG_COLOR),
                   constraints: BoxConstraints(
-                      maxHeight: 0.10.sh, minWidth: double.infinity),
+                      maxHeight: 0.10.longSide, minWidth: double.infinity),
                 ))));
   }
 }

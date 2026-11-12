@@ -1,3 +1,4 @@
+import 'package:dngmsp/app/resource/var/iot_screen.dart';
 import 'dart:io';
 
 import 'package:dngmsp/app/model/shared_preferences.dart';
@@ -12,7 +13,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:pdfrx/pdfrx.dart';
 
 void main() async {
@@ -42,8 +42,7 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: Size(1080, 1920),
+    return IotScreenUtilInit(
       builder: (context, widget) => MaterialApp(
         title: IOT_DESCRIPTION,
         localizationsDelegates: [
@@ -63,12 +62,13 @@ class MainApp extends StatelessWidget {
             surface: Colors.white,
           ),
           scaffoldBackgroundColor: Colors.white,
-          appBarTheme: const AppBarTheme(
+          appBarTheme: AppBarTheme(
             backgroundColor: IOT_BG_COLOR,
             foregroundColor: Colors.white,
             elevation: 0,
             centerTitle: true,
             surfaceTintColor: Colors.transparent,
+            toolbarHeight: iotToolbarHeight(MediaQuery.orientationOf(context)),
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(

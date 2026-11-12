@@ -1,3 +1,4 @@
+import 'package:dngmsp/app/resource/var/iot_screen.dart';
 import 'package:dngmsp/app/model/account/log.dart';
 import 'package:dngmsp/app/resource/color/app_colors.dart';
 import 'package:dngmsp/app/view/widget/app_bar.dart';
@@ -6,7 +7,6 @@ import 'package:dngmsp/app/view/widget/circular_progress_widget.dart';
 import 'package:dngmsp/app/view/widget/exception_widget.dart';
 import 'package:dngmsp/app/viewmodel/account/log_stream.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class IotAccountLogPage extends StatelessWidget {
   @override
@@ -62,7 +62,7 @@ class IotAccountLogPage extends StatelessWidget {
                           fit: FlexFit.loose),
                     ]),
                 constraints:
-                BoxConstraints(minHeight: 0.068.sh, maxHeight: 0.14.sh),
+                BoxConstraints(minHeight: 0.068.longSide, maxHeight: 0.14.longSide),
                 padding: const EdgeInsets.all(10),
                 decoration: const BoxDecoration(
                     border: Border(
